@@ -92,6 +92,7 @@ SELECT \
     trim(pde_text) as description \
 FROM progdesc \
 WHERE pde_vsn_id = '$version_id' \
+ORDER BY pde_disp_ord \
 " | sed 's/&nbsp; //g' >> "${PSQLOUTPUT}"
 
 psql -H -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack --table-attr="note='progdesc_series'" -c "\
@@ -101,6 +102,7 @@ SELECT \
 FROM progdesc \
 WHERE pde_ser_id = '$series_id' \
 AND pde_prog_id = '-1' \
+ORDER BY pde_disp_ord \
 " | sed 's/&nbsp; //g' >> "${PSQLOUTPUT}"
 
 echo "</temp_pbcore>" >> "${PSQLOUTPUT}"
