@@ -47,6 +47,7 @@ SELECT \
     li_vsn_id,\
     li_length_char AS instantiationDuration, \
     li_in_char AS instantiationTimeStart, \
+    quad_tab.ser_type AS asset_type, \
     trim(quad_tab.ser_title) as series_title_cap, \
     trim(series_ac_titles.ttl_text) AS series_title, \
     trim(quad_tab.pg_title) as episode_title_cap, \

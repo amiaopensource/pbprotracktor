@@ -4,6 +4,15 @@
   <xsl:template match="temp_pbcore">
     <pbcoreDescriptionDocument>
 
+      <pbcoreAssetType>
+        <xsl:choose>
+          <xsl:when test="table[@note='titles']/tr[2]/td[count(../../tr[1]/th[.='asset_type']/preceding-sibling::*)+1]='P'">
+            <xsl:text>Program</xsl:text>
+          </xsl:when>
+          <xsl:otherwise>Episode</xsl:otherwise>
+        </xsl:choose>
+      </pbcoreAssetType>
+
       <!-- titles -->
       <xsl:call-template name="title">
         <xsl:with-param name="title" select="table[@note='titles']/tr[2]/td[count(../../tr[1]/th[.='series_title']/preceding-sibling::*)+1]"/>
