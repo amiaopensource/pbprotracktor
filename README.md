@@ -1,6 +1,6 @@
 # What is this?
 
-This is a hastily-written bash script which makes calls to a postgres database to output html fragment in an order so that the data may be subsequently converted into PBCore. Use at your own risk.
+This is a hastily-written bash script which makes calls to a postgres database to output html fragments in an order so that the data may be subsequently converted into PBCore. Use at your own risk.
 
 # How valid is the PBCore?
 
