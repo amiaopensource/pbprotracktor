@@ -105,6 +105,16 @@ AND pde_prog_id = '-1' \
 ORDER BY pde_disp_ord \
 " | sed 's/&nbsp; //g' >> "${PSQLOUTPUT}"
 
+# ok this covers similar turf as the 'titles' table above, consolidate these
+psql -H -h 10.25.103.11 -U archivesx -d protrack --table-attr="note='linkinfo'" -c "\
+SELECT \
+    li_in_char as timeStart, \
+    li_length_char as duration, \
+    trim(li_material_id) as material_id \
+FROM linkinfo \
+WHERE li_vsn_id = '$version_id' \
+" | sed 's/&nbsp; //g' >> "${PSQLOUTPUT}"
+
 echo "</temp_pbcore>" >> "${PSQLOUTPUT}"
 
 xsltproc "${SCRIPTDIR}/psql2pbcore.xsl" "${PSQLOUTPUT}"
