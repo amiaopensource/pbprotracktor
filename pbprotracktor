@@ -108,12 +108,28 @@ ORDER BY pde_disp_ord \
 # ok this covers similar turf as the 'titles' table above, consolidate these
 psql -H -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack --table-attr="note='linkinfo'" -c "\
 SELECT \
-    li_in_char as timeStart, \
-    li_length_char as duration, \
-    trim(li_material_id) as material_id \
-FROM linkinfo \
+    l.li_serial, \
+    l.li_vsn_id AS vsn_id, \
+    l.li_in_char AS timeStart, \
+    l.li_length_char as duration, \
+    l.li_use_for_air as use_for_air, \
+    trim(l.li_material_id) as material_id, \
+    string_agg(trim(notes.no_text), ' ') AS air_reason \
+FROM ( SELECT
+    li_serial, \
+    li_vsn_id, \
+    li_in_char, \
+    li_length_char, \
+    li_use_for_air, \
+    li_material_id \
+    FROM linkinfo ) AS l \
+LEFT OUTER JOIN notes ON \
+notes.no_parent = li_serial \
+AND notes.no_location = 'tapelink' \
+\
 WHERE li_vsn_id = '$version_id' \
-" | sed 's/&nbsp; //g' >> "${PSQLOUTPUT}"
+GROUP BY li_serial, l.li_vsn_id, l.li_in_char, l.li_length_char, l.li_use_for_air, l.li_material_id \
+" | sed 's/&nbsp; //g' | sed 's/{NULL}//g' >> "${PSQLOUTPUT}"
 
 echo "</temp_pbcore>" >> "${PSQLOUTPUT}"
 
