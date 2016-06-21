@@ -63,6 +63,15 @@
         <xsl:with-param name="descriptionType">Series</xsl:with-param>
       </xsl:call-template>
 
+      <!-- instantiations -->
+      <xsl:for-each select="table[@note='linkinfo']/tr">
+        <xsl:call-template name="instantiation">
+          <xsl:with-param name="timestart" select="td[count(../../tr[1]/th[.='timestart']/preceding-sibling::*)+1]"/>
+          <xsl:with-param name="duration" select="td[count(../../tr[1]/th[.='duration']/preceding-sibling::*)+1]"/>
+          <xsl:with-param name="material_id" select="td[count(../../tr[1]/th[.='material_id']/preceding-sibling::*)+1]"/>
+        </xsl:call-template>
+      </xsl:for-each>
+
     </pbcoreDescriptionDocument>
   </xsl:template>
   <xsl:template name="title">
@@ -115,6 +124,29 @@
         </xsl:if>
         <xsl:value-of select="$description"/>
       </pbcoreDescription>
+    </xsl:if>
+  </xsl:template>
+  <xsl:template name="instantiation">
+    <xsl:param name="timestart"/>
+    <xsl:param name="duration"/>
+    <xsl:param name="material_id"/>
+    <xsl:if test="$material_id!=''">
+      <pbcoreInstantiaion>
+        <instantiationIdentifier>
+          <xsl:attribute name="identifierSource">Material ID</xsl:attribute>
+          <xsl:value-of select="$material_id"/>
+        </instantiationIdentifier>
+        <xsl:if test="$timestart!=''">
+          <instantiationTimeStart>
+            <xsl:value-of select="$timestart"/>
+          </instantiationTimeStart>
+        </xsl:if>
+        <xsl:if test="$duration!=''">
+          <instantiationDuration>
+            <xsl:value-of select="$duration"/>
+          </instantiationDuration>
+        </xsl:if>
+      </pbcoreInstantiaion>
     </xsl:if>
   </xsl:template>
 </xsl:stylesheet>
