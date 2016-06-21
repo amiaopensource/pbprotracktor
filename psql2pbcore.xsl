@@ -43,6 +43,7 @@
         <xsl:for-each select="table[@note='progdesc_version']/tr/td[count(../../tr/th[.='description']/preceding-sibling::*)+1]">
           <xsl:value-of select="."/>
           <xsl:text> </xsl:text>
+          <!-- todo: remove the last occurrence of the above space -->
         </xsl:for-each>
       </xsl:variable>
       <xsl:call-template name="description">
@@ -54,6 +55,7 @@
         <xsl:for-each select="table[@note='progdesc_series']/tr/td[count(../../tr/th[.='description']/preceding-sibling::*)+1]">
           <xsl:value-of select="."/>
           <xsl:text> </xsl:text>
+          <!-- todo: remove the last occurrence of the above space -->
         </xsl:for-each>
       </xsl:variable>
       <xsl:call-template name="description">
