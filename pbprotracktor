@@ -1,0 +1,80 @@
+#!/bin/bash
+
+SCRIPTDIR=$(dirname $(which "${0}"))
+CONF_FILE="${SCRIPTDIR}/pbpro.conf"
+
+_maketemp(){
+    mktemp -q "/tmp/$(basename "${0}").XXXXXX"
+    if [ "${?}" -ne 0 ]; then
+        echo "${0}: Can't create temp file, exiting..."
+        _writeerrorlog "_maketemp" "was unable to create the temp file, so the script had to exit."
+        exit 1
+    fi
+}
+
+if [ ! -f "${CONF_FILE}" ] ; then
+    echo "A configuration file is needed."
+    echo "Please edit ${CONF_FILE}"
+    echo "PROTRACK_DB_URL=" > "${CONF_FILE}"
+    echo "PROTRACK_DB_USER=" >> "${CONF_FILE}"
+    exit 1
+fi
+
+. "${CONF_FILE}" || { echo "Missing ${CONF_FILE}. Exiting." ; exit 1 ;};
+
+if [[ -z "$PROTRACK_DB_URL" || -z "$PROTRACK_DB_USER" ]] ; then
+    echo "Please set info for the postgres connection in ${CONF_FILE}."
+    exit 1
+fi
+
+# get version id
+version_id=$(psql -At -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack -c "\
+SELECT \
+    li_vsn_id \
+FROM linkinfo \
+WHERE li_material_id = '$1' \
+")
+
+PSQLOUTPUT=$(_maketemp)
+
+echo "<temp_pbcore>" > "${PSQLOUTPUT}"
+echo "<!--The version id for $1 is $version_id-->" >> "${PSQLOUTPUT}"
+
+
+psql -H -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack --table-attr="note='titles'" -c "\
+SELECT \
+    li_serial,\
+    li_vsn_id,\
+    li_length_char AS instantiationDuration, \
+    li_in_char AS instantiationTimeStart, \
+    trim(quad_tab.ser_title) as series_title_cap, \
+    trim(series_ac_titles.ttl_text) AS series_title, \
+    trim(quad_tab.pg_title) as episode_title_cap, \
+    trim(episode_ac_titles.ttl_text) AS episode_title \
+FROM linkinfo,quad_tab \
+\
+LEFT OUTER JOIN titles AS series_ac_titles ON \
+series_ac_titles.ttl_ser_id = quad_tab.ser_serial \
+AND series_ac_titles.ttl_prog_id = '-1' \
+AND series_ac_titles.ttl_type = 'AC' \
+\
+LEFT OUTER JOIN titles AS episode_ac_titles ON \
+episode_ac_titles.ttl_prog_id = quad_tab.pg_serial \
+AND episode_ac_titles.ttl_type = 'AC' \
+\
+WHERE li_material_id = '$1' \
+AND linkinfo.li_vsn_id = quad_tab.vsn_serial \
+" | sed 's/&nbsp; //g' >> "${PSQLOUTPUT}"
+
+psql -H -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack --table-attr="note='proguide'" -c "\
+SELECT \
+    trim(pgu_location) as descriptionType,\
+    trim(pgu_text) as description,\
+    pgu_serial AS ref \
+FROM proguide \
+WHERE pgu_vsn_id = '$version_id' \
+" | sed 's/&nbsp; //g' >> "${PSQLOUTPUT}"
+
+echo "</temp_pbcore>" >> "${PSQLOUTPUT}"
+
+xsltproc "${SCRIPTDIR}/psql2pbcore.xsl" "${PSQLOUTPUT}"
