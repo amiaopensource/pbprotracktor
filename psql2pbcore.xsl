@@ -39,6 +39,28 @@
         </xsl:call-template>
       </xsl:for-each>
 
+      <xsl:variable name="catdescription_version">
+        <xsl:for-each select="table[@note='progdesc_version']/tr/td[count(../../tr/th[.='description']/preceding-sibling::*)+1]">
+          <xsl:value-of select="."/>
+          <xsl:text> </xsl:text>
+        </xsl:for-each>
+      </xsl:variable>
+      <xsl:call-template name="description">
+        <xsl:with-param name="description" select="$catdescription_version"/>
+        <xsl:with-param name="descriptionType">Version</xsl:with-param>
+      </xsl:call-template>
+
+      <xsl:variable name="catdescription_series">
+        <xsl:for-each select="table[@note='progdesc_series']/tr/td[count(../../tr/th[.='description']/preceding-sibling::*)+1]">
+          <xsl:value-of select="."/>
+          <xsl:text> </xsl:text>
+        </xsl:for-each>
+      </xsl:variable>
+      <xsl:call-template name="description">
+        <xsl:with-param name="description" select="$catdescription_series"/>
+        <xsl:with-param name="descriptionType">Series</xsl:with-param>
+      </xsl:call-template>
+
     </pbcoreDescriptionDocument>
   </xsl:template>
   <xsl:template name="title">

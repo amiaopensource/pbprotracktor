@@ -35,11 +35,19 @@ FROM linkinfo \
 WHERE li_material_id = '$1' \
 ")
 
+# get series id
+series_id=$(psql -At -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack -c "\
+SELECT \
+    ser_serial \
+FROM quad_tab \
+WHERE vsn_serial = '$version_id' \
+")
+
 PSQLOUTPUT=$(_maketemp)
 
 echo "<temp_pbcore>" > "${PSQLOUTPUT}"
 echo "<!--The version id for $1 is $version_id-->" >> "${PSQLOUTPUT}"
-
+echo "<!--The series id for $1 is $series_id-->" >> "${PSQLOUTPUT}"
 
 psql -H -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack --table-attr="note='titles'" -c "\
 SELECT \
@@ -74,6 +82,23 @@ SELECT \
     pgu_serial AS ref \
 FROM proguide \
 WHERE pgu_vsn_id = '$version_id' \
+" | sed 's/&nbsp; //g' >> "${PSQLOUTPUT}"
+
+psql -H -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack --table-attr="note='progdesc_version'" -c "\
+SELECT \
+    pde_disp_ord as order, \
+    trim(pde_text) as description \
+FROM progdesc \
+WHERE pde_vsn_id = '$version_id' \
+" | sed 's/&nbsp; //g' >> "${PSQLOUTPUT}"
+
+psql -H -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack --table-attr="note='progdesc_series'" -c "\
+SELECT \
+    pde_disp_ord as order, \
+    trim(pde_text) as description \
+FROM progdesc \
+WHERE pde_ser_id = '$series_id' \
+AND pde_prog_id = '-1' \
 " | sed 's/&nbsp; //g' >> "${PSQLOUTPUT}"
 
 echo "</temp_pbcore>" >> "${PSQLOUTPUT}"
