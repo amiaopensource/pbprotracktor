@@ -69,6 +69,8 @@
           <xsl:with-param name="timestart" select="td[count(../../tr[1]/th[.='timestart']/preceding-sibling::*)+1]"/>
           <xsl:with-param name="duration" select="td[count(../../tr[1]/th[.='duration']/preceding-sibling::*)+1]"/>
           <xsl:with-param name="material_id" select="td[count(../../tr[1]/th[.='material_id']/preceding-sibling::*)+1]"/>
+          <xsl:with-param name="use_for_air" select="td[count(../../tr[1]/th[.='use_for_air']/preceding-sibling::*)+1]"/>
+          <xsl:with-param name="air_reason" select="td[count(../../tr[1]/th[.='air_reason']/preceding-sibling::*)+1]"/>
         </xsl:call-template>
       </xsl:for-each>
 
@@ -130,6 +132,8 @@
     <xsl:param name="timestart"/>
     <xsl:param name="duration"/>
     <xsl:param name="material_id"/>
+    <xsl:param name="use_for_air"/>
+    <xsl:param name="air_reason"/>
     <xsl:if test="$material_id!=''">
       <pbcoreInstantiaion>
         <instantiationIdentifier>
@@ -145,6 +149,18 @@
           <instantiationDuration>
             <xsl:value-of select="$duration"/>
           </instantiationDuration>
+        </xsl:if>
+        <xsl:if test="$use_for_air='0'">
+          <instantiationAnnotation>
+            <xsl:attribute name="annotationType">accessRestriction</xsl:attribute>
+            <xsl:text>Restricted</xsl:text>
+          </instantiationAnnotation>
+        </xsl:if>
+        <xsl:if test="string-length($air_reason)>'0'">
+          <instantiationAnnotation>
+            <xsl:attribute name="annotationType">notes</xsl:attribute>
+            <xsl:value-of select="$air_reason"/>
+          </instantiationAnnotation>
         </xsl:if>
       </pbcoreInstantiaion>
     </xsl:if>
