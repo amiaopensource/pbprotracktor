@@ -43,6 +43,8 @@ FROM quad_tab \
 WHERE vsn_serial = '$version_id' \
 ")
 
+# todo: verify version id finds a match before proceeding
+
 PSQLOUTPUT=$(_maketemp)
 
 echo "<temp_pbcore>" > "${PSQLOUTPUT}"
