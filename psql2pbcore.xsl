@@ -197,9 +197,9 @@
     <xsl:param name="use_for_air"/>
     <xsl:param name="air_reason"/>
     <xsl:if test="$material_id!=''">
-      <pbcoreInstantiaion>
+      <pbcoreInstantiation>
         <instantiationIdentifier>
-          <xsl:attribute name="identifierSource">Material ID</xsl:attribute>
+          <xsl:attribute name="source">Material ID</xsl:attribute>
           <xsl:value-of select="$material_id"/>
         </instantiationIdentifier>
         <xsl:if test="$timestart!=''">
@@ -224,7 +224,7 @@
             <xsl:value-of select="$air_reason"/>
           </instantiationAnnotation>
         </xsl:if>
-      </pbcoreInstantiaion>
+      </pbcoreInstantiation>
     </xsl:if>
   </xsl:template>
 </xsl:stylesheet>
