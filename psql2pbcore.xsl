@@ -28,6 +28,13 @@
       <pbcoreAssetType>
         <xsl:value-of select="$assetType"/>
       </pbcoreAssetType>
+      
+      <!-- identifiers -->
+      <xsl:call-template name="identifier">
+        <xsl:with-param name="identifier" select="table[@note='titles']/tr[2]/td[count(../../tr[1]/th[.='vsn_serial']/preceding-sibling::*)+1]"/>
+        <xsl:with-param name="source">vsn_serial</xsl:with-param>
+        <xsl:with-param name="annotation">protrack</xsl:with-param>
+      </xsl:call-template>
 
       <!-- titles -->
       <xsl:call-template name="title">
@@ -93,6 +100,37 @@
       </xsl:for-each>
 
     </pbcoreDescriptionDocument>
+  </xsl:template>
+  <xsl:template name="identifier">
+    <xsl:param name="identifier"/>
+    <xsl:param name="source"/>
+    <xsl:param name="annotation"/>
+    <xsl:param name="ref"/>
+    <xsl:if test="$identifier!=''">
+      <pbcoreIdentifier>
+        <xsl:if test="$source!=''">
+          <xsl:attribute name="source">
+            <xsl:value-of select="$source"/>
+          </xsl:attribute>
+        </xsl:if>
+        <xsl:if test="$ref!=''">
+          <xsl:attribute name="ref">
+            <xsl:value-of select="$ref"/>
+          </xsl:attribute>
+        </xsl:if>
+        <xsl:if test="$annotation!=''">
+          <xsl:attribute name="annotation">
+            <xsl:value-of select="$annotation"/>
+          </xsl:attribute>
+        </xsl:if>
+        <xsl:if test="$source!=''">
+          <xsl:attribute name="source">
+            <xsl:value-of select="$source"/>
+          </xsl:attribute>
+        </xsl:if>
+        <xsl:value-of select="$identifier"/>
+      </pbcoreIdentifier>
+    </xsl:if>
   </xsl:template>
   <xsl:template name="title">
     <xsl:param name="title"/>
