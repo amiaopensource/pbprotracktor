@@ -202,6 +202,7 @@
           <xsl:attribute name="source">Material ID</xsl:attribute>
           <xsl:value-of select="$material_id"/>
         </instantiationIdentifier>
+        <instantiationLocation></instantiationLocation>
         <xsl:if test="$timestart!=''">
           <instantiationTimeStart>
             <xsl:value-of select="$timestart"/>
