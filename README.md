@@ -4,7 +4,7 @@ This is a hastily-written bash script which makes calls to a postgres database t
 
 # How valid is the PBCore?
 
-It's not (yet)
+Sometimes valid
 
 # How to use?
 
