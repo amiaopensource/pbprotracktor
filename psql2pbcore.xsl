@@ -4,31 +4,49 @@
   <xsl:template match="temp_pbcore">
     <pbcoreDescriptionDocument>
 
-      <pbcoreAssetType>
+      <!-- assess outcomes for assetTypes and titleTypes -->
+      <xsl:variable name="assetType">
         <xsl:choose>
-          <xsl:when test="table[@note='titles']/tr[2]/td[count(../../tr[1]/th[.='asset_type']/preceding-sibling::*)+1]='P'">
-            <xsl:text>Program</xsl:text>
-          </xsl:when>
+          <xsl:when test="table[@note='titles']/tr[2]/td[count(../../tr[1]/th[.='asset_type']/preceding-sibling::*)+1]='P'">Program</xsl:when>
           <xsl:otherwise>Episode</xsl:otherwise>
         </xsl:choose>
+      </xsl:variable>
+      <xsl:variable name="primaryTitleType">
+        <xsl:choose>
+          <xsl:when test="table[@note='titles']/tr[2]/td[count(../../tr[1]/th[.='asset_type']/preceding-sibling::*)+1]='P'">Program</xsl:when>
+          <xsl:otherwise>Series</xsl:otherwise>
+        </xsl:choose>
+      </xsl:variable>
+      <xsl:variable name="secondaryTitleType">
+        <xsl:choose>
+          <xsl:when test="table[@note='titles']/tr[2]/td[count(../../tr[1]/th[.='asset_type']/preceding-sibling::*)+1]='P'">Subtitle</xsl:when>
+          <xsl:otherwise>Episode</xsl:otherwise>
+        </xsl:choose>
+      </xsl:variable>
+      
+      <!-- assetTypes -->
+      <pbcoreAssetType>
+        <xsl:value-of select="$assetType"/>
       </pbcoreAssetType>
 
       <!-- titles -->
       <xsl:call-template name="title">
         <xsl:with-param name="title" select="table[@note='titles']/tr[2]/td[count(../../tr[1]/th[.='series_title']/preceding-sibling::*)+1]"/>
-        <xsl:with-param name="titleType">Series</xsl:with-param>
+        <xsl:with-param name="titleType" select="$primaryTitleType"/>
       </xsl:call-template>
       <xsl:call-template name="title">
         <xsl:with-param name="title" select="table[@note='titles']/tr[2]/td[count(../../tr[1]/th[.='episode_title']/preceding-sibling::*)+1]"/>
-        <xsl:with-param name="titleType">Episode</xsl:with-param>
+        <xsl:with-param name="titleType" select="$secondaryTitleType"/>
       </xsl:call-template>
       <xsl:call-template name="title">
         <xsl:with-param name="title" select="table[@note='titles']/tr[2]/td[count(../../tr[1]/th[.='series_title_cap']/preceding-sibling::*)+1]"/>
-        <xsl:with-param name="titleType">Series (ALL CAPS)</xsl:with-param>
+        <xsl:with-param name="titleType" select="$primaryTitleType"/>
+        <xsl:with-param name="titleTypeAnnotation">Uppercase Formatting</xsl:with-param>
       </xsl:call-template>
       <xsl:call-template name="title">
         <xsl:with-param name="title" select="table[@note='titles']/tr[2]/td[count(../../tr[1]/th[.='episode_title_cap']/preceding-sibling::*)+1]"/>
-        <xsl:with-param name="titleType">Episode (ALL CAPS)</xsl:with-param>
+        <xsl:with-param name="titleType" select="$secondaryTitleType"/>
+        <xsl:with-param name="titleTypeAnnotation">Uppercase Formatting</xsl:with-param>
       </xsl:call-template>
 
       <!-- descriptions -->
@@ -79,6 +97,7 @@
   <xsl:template name="title">
     <xsl:param name="title"/>
     <xsl:param name="titleType"/>
+    <xsl:param name="titleTypeAnnotation"/>
     <xsl:param name="ref"/>
     <xsl:param name="source"/>
     <xsl:if test="$title!=''">
@@ -91,6 +110,11 @@
         <xsl:if test="$ref!=''">
           <xsl:attribute name="ref">
             <xsl:value-of select="$ref"/>
+          </xsl:attribute>
+        </xsl:if>
+        <xsl:if test="$titleTypeAnnotation!=''">
+          <xsl:attribute name="titleTypeAnnotation">
+            <xsl:value-of select="$titleTypeAnnotation"/>
           </xsl:attribute>
         </xsl:if>
         <xsl:if test="$source!=''">
