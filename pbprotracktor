@@ -61,7 +61,9 @@ SELECT \
     trim(quad_tab.ser_title) as series_title_cap, \
     trim(series_ac_titles.ttl_text) AS series_title, \
     trim(quad_tab.pg_title) as episode_title_cap, \
-    trim(episode_ac_titles.ttl_text) AS episode_title \
+    trim(episode_ac_titles.ttl_text) AS episode_title, \
+    quad_tab.vsn_serial as vsn_serial, \
+    quad_tab.pg_serial as pg_serial \
 FROM linkinfo,quad_tab \
 \
 LEFT OUTER JOIN titles AS series_ac_titles ON \
