@@ -6,7 +6,7 @@ CONF_FILE="${SCRIPTDIR}/pbpro.conf"
 _maketemp(){
     mktemp -q "/tmp/$(basename "${0}").XXXXXX"
     if [ "${?}" -ne 0 ]; then
-        echo "${0}: Can't create temp file, exiting..."
+        >&2 echo "${0}: Can't create temp file, exiting..."
         _writeerrorlog "_maketemp" "was unable to create the temp file, so the script had to exit."
         exit 1
     fi
@@ -27,7 +27,7 @@ fi
 . "${CONF_FILE}" || { echo "Missing ${CONF_FILE}. Exiting." ; exit 1 ;};
 
 if [[ -z "$PROTRACK_DB_URL" || -z "$PROTRACK_DB_USER" ]] ; then
-    echo "Please set info for the postgres connection in ${CONF_FILE}."
+    >&2 echo "Please set info for the postgres connection in ${CONF_FILE}."
     exit 1
 fi
 
