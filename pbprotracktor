@@ -38,7 +38,10 @@ SELECT \
 FROM linkinfo \
 WHERE li_material_id = '$1' \
 ")
-
+if [[ -z "${version_id}" ]] ; then
+    >&2 echo "No results found for ${1}."
+    exit 1
+fi
 # get series id
 series_id=$(psql -At -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack -c "\
 SELECT \
