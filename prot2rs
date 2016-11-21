@@ -39,7 +39,7 @@ if [[ -z "${COLLECTION_ID}" ]] ; then
     mysql -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "INSERT INTO collection  (name,public,theme,created,user,allow_changes) VALUES('${SERIESTITLE}',1,'Series',now(),3,1)" ;
     COLLECTION_ID=$(mysql -BNr -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "SELECT ref FROM collection WHERE name = '${SERIESTITLE}' LIMIT 1 ;")
 fi
-xsltproc --nonet --stringparam collectionid "${COLLECTION_ID}" "${SCRIPTDIR}/pbcore2resourcespace.xsl" "${TEMPXML}" > "${TEMPPBCORE}"
+xsltproc --nonet --stringparam id "${MEDIAID}" --stringparam collectionid "${COLLECTION_ID}" "${SCRIPTDIR}/pbcore2resourcespace.xsl" "${TEMPXML}" > "${TEMPPBCORE}"
 if [ -s "${TEMPXML}" ] ; then
 curl --data-urlencode "xml@${TEMPPBCORE}" http://respace.cunytv.lan/plugins/remoteimport/pages/update_unsafe.php
 echo

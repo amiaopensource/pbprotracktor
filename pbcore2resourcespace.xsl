@@ -5,12 +5,10 @@
     <resourceset>
       <resource>
         <xsl:attribute name="type">3</xsl:attribute>
-        <xsl:for-each select="pbc:pbcoreInstantiation/pbc:instantiationIdentifier[@source='Material ID']">
-          <keyfield>
-            <xsl:attribute name="ref">8</xsl:attribute>
-            <xsl:value-of select="."/>
-          </keyfield>
-        </xsl:for-each>
+        <keyfield>
+          <xsl:attribute name="ref">8</xsl:attribute>
+          <xsl:value-of select="$id"/>
+        </keyfield>
         <!-- collectionid comes from an xsltproc stringparam -->
         <xsl:if test="$collectionid">
           <collection>
