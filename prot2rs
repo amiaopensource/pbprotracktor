@@ -30,7 +30,10 @@ TEMPXML=$(_maketemp)
 TEMPPBCORE=$(_maketemp)
 
 "${SCRIPTDIR}/pbprotracktor" "${MEDIAID}" > "${TEMPXML}"
-
+if [ ! -s "${TEMPXML}" ] ; then
+  echo "pbprotracktor did not return a result for ${MEDIAID}, exiting."
+  exit 1
+fi
 SERIESTITLE=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -t -v "p:pbcoreDescriptionDocument/p:pbcoreTitle[@titleType='Series'][1]" "${TEMPXML}")
 if [ -n "${SERIESTITLE}" ] ; then
     COLLECTION_ID=$(mysql -BNr -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "SELECT ref FROM collection WHERE name = '${SERIESTITLE}' LIMIT 1 ;")
