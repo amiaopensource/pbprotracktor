@@ -42,6 +42,11 @@ if [[ -z "${version_id}" ]] ; then
     >&2 echo "No results found for ${1}."
     exit 1
 fi
+PSQLOUTPUT=$(_maketemp)
+
+echo "<temp_pbcore>" > "${PSQLOUTPUT}"
+echo "<!--The version id for $1 is $version_id-->" >> "${PSQLOUTPUT}"
+
 # get series id
 series_id=$(psql -At -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack -c "\
 SELECT \
@@ -52,10 +57,6 @@ WHERE vsn_serial = '$version_id' \
 
 # todo: verify version id finds a match before proceeding
 
-PSQLOUTPUT=$(_maketemp)
-
-echo "<temp_pbcore>" > "${PSQLOUTPUT}"
-echo "<!--The version id for $1 is $version_id-->" >> "${PSQLOUTPUT}"
 echo "<!--The series id for $1 is $series_id-->" >> "${PSQLOUTPUT}"
 
 psql -H -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack --table-attr="note='titles'" -c "\
