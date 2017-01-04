@@ -45,17 +45,20 @@
         <xsl:with-param name="title" select="table[@note='titles']/tr[2]/td[count(../../tr[1]/th[.='episode_title']/preceding-sibling::*)+1]"/>
         <xsl:with-param name="titleType" select="$secondaryTitleType"/>
       </xsl:call-template>
+    <xsl:if test="table[@note='titles']/tr[1]/th[.='series_title_cap']">
       <xsl:call-template name="title">
         <xsl:with-param name="title" select="table[@note='titles']/tr[2]/td[count(../../tr[1]/th[.='series_title_cap']/preceding-sibling::*)+1]"/>
         <xsl:with-param name="titleType" select="$primaryTitleType"/>
         <xsl:with-param name="titleTypeAnnotation">Uppercase Formatting</xsl:with-param>
       </xsl:call-template>
+    </xsl:if>
+    <xsl:if test="table[@note='titles']/tr[1]/th[.='episode_title_cap']">
       <xsl:call-template name="title">
         <xsl:with-param name="title" select="table[@note='titles']/tr[2]/td[count(../../tr[1]/th[.='episode_title_cap']/preceding-sibling::*)+1]"/>
         <xsl:with-param name="titleType" select="$secondaryTitleType"/>
         <xsl:with-param name="titleTypeAnnotation">Uppercase Formatting</xsl:with-param>
       </xsl:call-template>
-
+    </xsl:if>
       <!-- descriptions -->
       <xsl:for-each select="table[@note='proguide']/tr">
         <xsl:call-template name="description">
