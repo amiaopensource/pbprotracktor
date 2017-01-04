@@ -36,11 +36,11 @@ if [ ! -s "${TEMPXML}" ] ; then
 fi
 SERIESTITLE=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -t -v "p:pbcoreDescriptionDocument/p:pbcoreTitle[@titleType='Series'][1]" "${TEMPXML}")
 if [ -n "${SERIESTITLE}" ] ; then
-    COLLECTION_ID=$(mysql -BNr -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "SELECT ref FROM collection WHERE name = '${SERIESTITLE}' LIMIT 1 ;")
+    COLLECTION_ID=$(mysql -BNr -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "SELECT ref FROM collection WHERE name = '$(printf "%q" "${SERIESTITLE}")' LIMIT 1 ;")
 fi
 if [[ -z "${COLLECTION_ID}" ]] ; then
-    mysql -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "INSERT INTO collection  (name,public,theme,created,user,allow_changes) VALUES('${SERIESTITLE}',1,'Series',now(),3,1)" ;
-    COLLECTION_ID=$(mysql -BNr -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "SELECT ref FROM collection WHERE name = '${SERIESTITLE}' LIMIT 1 ;")
+    mysql -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "INSERT INTO collection  (name,public,theme,created,user,allow_changes) VALUES('$(printf "%q" "${SERIESTITLE}")',1,'Series',now(),3,1)" ;
+    COLLECTION_ID=$(mysql -BNr -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "SELECT ref FROM collection WHERE name = '$(printf "%q" "${SERIESTITLE}")' LIMIT 1 ;")
 fi
 xsltproc --nonet --stringparam id "${MEDIAID}" --stringparam collectionid "${COLLECTION_ID}" "${SCRIPTDIR}/pbcore2resourcespace.xsl" "${TEMPXML}" > "${TEMPPBCORE}"
 if [ -s "${TEMPXML}" ] ; then
