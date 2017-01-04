@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <xsl:stylesheet version="1.0" xmlns="http://www.pbcore.org/PBCore/PBCoreNamespace.html" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.pbcore.org/PBCore/PBCoreNamespace.html http://pbcore.org/xsd/pbcore-2.0.xsd">
 <xsl:output encoding="UTF-8" method="xml" version="1.0" indent="yes"/>
+  <xsl:output encoding="UTF-8" method="xml" version="1.0" indent="yes"/>
   <xsl:template match="temp_pbcore_set">
     <xsl:if test="count(temp_pbcore)>0">
       <pbcoreCollection>
@@ -13,7 +14,6 @@
   </xsl:template>
   <xsl:template match="temp_pbcore">
     <pbcoreDescriptionDocument>
-
       <!-- assess outcomes for assetTypes and titleTypes -->
       <xsl:variable name="assetType">
         <xsl:choose>
@@ -35,12 +35,10 @@
           <xsl:otherwise>Episode</xsl:otherwise>
         </xsl:choose>
       </xsl:variable>
-      
       <!-- assetTypes -->
       <pbcoreAssetType>
         <xsl:value-of select="$assetType"/>
       </pbcoreAssetType>
-      
       <!-- identifiers -->
       <xsl:call-template name="identifier">
         <xsl:with-param name="identifier" select="table[@note='titles']/tr[2]/td[count(../../tr[1]/th[.='vsn_serial']/preceding-sibling::*)+1]"/>
@@ -53,7 +51,6 @@
         </xsl:with-param>
         <xsl:with-param name="annotation">protrack</xsl:with-param>
       </xsl:call-template>
-
       <!-- titles -->
       <xsl:call-template name="title">
         <xsl:with-param name="title" select="table[@note='titles']/tr[2]/td[count(../../tr[1]/th[.='series_title']/preceding-sibling::*)+1]"/>
@@ -63,20 +60,20 @@
         <xsl:with-param name="title" select="table[@note='titles']/tr[2]/td[count(../../tr[1]/th[.='episode_title']/preceding-sibling::*)+1]"/>
         <xsl:with-param name="titleType" select="$secondaryTitleType"/>
       </xsl:call-template>
-    <xsl:if test="table[@note='titles']/tr[1]/th[.='series_title_cap']">
-      <xsl:call-template name="title">
-        <xsl:with-param name="title" select="table[@note='titles']/tr[2]/td[count(../../tr[1]/th[.='series_title_cap']/preceding-sibling::*)+1]"/>
-        <xsl:with-param name="titleType" select="$primaryTitleType"/>
-        <xsl:with-param name="titleTypeAnnotation">Uppercase Formatting</xsl:with-param>
-      </xsl:call-template>
-    </xsl:if>
-    <xsl:if test="table[@note='titles']/tr[1]/th[.='episode_title_cap']">
-      <xsl:call-template name="title">
-        <xsl:with-param name="title" select="table[@note='titles']/tr[2]/td[count(../../tr[1]/th[.='episode_title_cap']/preceding-sibling::*)+1]"/>
-        <xsl:with-param name="titleType" select="$secondaryTitleType"/>
-        <xsl:with-param name="titleTypeAnnotation">Uppercase Formatting</xsl:with-param>
-      </xsl:call-template>
-    </xsl:if>
+      <xsl:if test="table[@note='titles']/tr[1]/th[.='series_title_cap']">
+        <xsl:call-template name="title">
+          <xsl:with-param name="title" select="table[@note='titles']/tr[2]/td[count(../../tr[1]/th[.='series_title_cap']/preceding-sibling::*)+1]"/>
+          <xsl:with-param name="titleType" select="$primaryTitleType"/>
+          <xsl:with-param name="titleTypeAnnotation">Uppercase Formatting</xsl:with-param>
+        </xsl:call-template>
+      </xsl:if>
+      <xsl:if test="table[@note='titles']/tr[1]/th[.='episode_title_cap']">
+        <xsl:call-template name="title">
+          <xsl:with-param name="title" select="table[@note='titles']/tr[2]/td[count(../../tr[1]/th[.='episode_title_cap']/preceding-sibling::*)+1]"/>
+          <xsl:with-param name="titleType" select="$secondaryTitleType"/>
+          <xsl:with-param name="titleTypeAnnotation">Uppercase Formatting</xsl:with-param>
+        </xsl:call-template>
+      </xsl:if>
       <!-- descriptions -->
       <xsl:for-each select="table[@note='proguide']/tr">
         <xsl:call-template name="description">
@@ -84,7 +81,6 @@
           <xsl:with-param name="descriptionType" select="td[count(../../tr[1]/th[.='descriptiontype']/preceding-sibling::*)+1]"/>
         </xsl:call-template>
       </xsl:for-each>
-
       <xsl:variable name="catdescription_notes">
         <xsl:for-each select="table[@note='notes']/tr/td[count(../../tr/th[.='description']/preceding-sibling::*)+1]">
           <xsl:value-of select="."/>
@@ -96,7 +92,6 @@
         <xsl:with-param name="description" select="$catdescription_notes"/>
         <xsl:with-param name="descriptionType">Notes</xsl:with-param>
       </xsl:call-template>
-
       <xsl:variable name="catdescription_version">
         <xsl:for-each select="table[@note='progdesc_version']/tr/td[count(../../tr/th[.='description']/preceding-sibling::*)+1]">
           <xsl:value-of select="."/>
@@ -108,7 +103,6 @@
         <xsl:with-param name="description" select="$catdescription_version"/>
         <xsl:with-param name="descriptionType">Version</xsl:with-param>
       </xsl:call-template>
-
       <xsl:variable name="catdescription_series">
         <xsl:for-each select="table[@note='progdesc_series']/tr/td[count(../../tr/th[.='description']/preceding-sibling::*)+1]">
           <xsl:value-of select="."/>
@@ -120,7 +114,6 @@
         <xsl:with-param name="description" select="$catdescription_series"/>
         <xsl:with-param name="descriptionType">Series</xsl:with-param>
       </xsl:call-template>
-
       <!-- instantiations -->
       <xsl:for-each select="table[@note='linkinfo']/tr">
         <xsl:call-template name="instantiation">
@@ -131,14 +124,12 @@
           <xsl:with-param name="air_reason" select="td[count(../../tr[1]/th[.='air_reason']/preceding-sibling::*)+1]"/>
         </xsl:call-template>
       </xsl:for-each>
-
       <xsl:if test="table[@note='titles']/tr[1]/th[.='fi_serial']">
         <xsl:call-template name="instantiation">
           <xsl:with-param name="duration" select="table[@note='titles']/tr/td[count(../../tr[1]/th[.='instantiationduration']/preceding-sibling::*)+1]"/>
           <xsl:with-param name="material_id" select="table[@note='titles']/tr/td[count(../../tr[1]/th[.='material_id']/preceding-sibling::*)+1]"/>
         </xsl:call-template>
       </xsl:if>
-
     </pbcoreDescriptionDocument>
   </xsl:template>
   <xsl:template name="identifier">

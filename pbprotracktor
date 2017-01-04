@@ -4,24 +4,24 @@ SCRIPTDIR=$(dirname $(which "${0}"))
 CONF_FILE="${SCRIPTDIR}/pbpro.conf"
 
 _maketemp(){
-  mktemp -q "/tmp/$(basename "${0}").XXXXXX"
-  if [ "${?}" -ne 0 ]; then
-    >&2 echo "${0}: Can't create temp file, exiting..."
-    _writeerrorlog "_maketemp" "was unable to create the temp file, so the script had to exit."
-    exit 1
-  fi
+    mktemp -q "/tmp/$(basename "${0}").XXXXXX"
+    if [ "${?}" -ne 0 ]; then
+        >&2 echo "${0}: Can't create temp file, exiting..."
+        _writeerrorlog "_maketemp" "was unable to create the temp file, so the script had to exit."
+        exit 1
+    fi
 }
 
 if [ ! -f "${CONF_FILE}" ] ; then
-  echo "A configuration file is needed."
-  echo "Please edit ${CONF_FILE}"
-  echo "PROTRACK_DB_URL=" > "${CONF_FILE}"
-  echo "PROTRACK_DB_USER=" >> "${CONF_FILE}"
-  echo "RESOURCESPACE_DB_HOST=" >> "${CONF_FILE}"
-  echo "RESOURCESPACE_DB_NAME=" >> "${CONF_FILE}"
-  echo "RESOURCESPACE_DB_USER=" >> "${CONF_FILE}"
-  echo "RESOURCESPACE_DB_PW=" >> "${CONF_FILE}"
-  exit 1
+    echo "A configuration file is needed."
+    echo "Please edit ${CONF_FILE}"
+    echo "PROTRACK_DB_URL=" > "${CONF_FILE}"
+    echo "PROTRACK_DB_USER=" >> "${CONF_FILE}"
+    echo "RESOURCESPACE_DB_HOST=" >> "${CONF_FILE}"
+    echo "RESOURCESPACE_DB_NAME=" >> "${CONF_FILE}"
+    echo "RESOURCESPACE_DB_USER=" >> "${CONF_FILE}"
+    echo "RESOURCESPACE_DB_PW=" >> "${CONF_FILE}"
+    exit 1
 fi
 
 . "${CONF_FILE}" || { echo "Missing ${CONF_FILE}. Exiting." ; exit 1 ;};
@@ -34,158 +34,157 @@ fi
 PSQLOUTPUT=$(_maketemp)
 echo "<temp_pbcore_set>" > "${PSQLOUTPUT}"
 while [ "${*}" != "" ] ; do
-# get version id
-version_id=$(psql -At -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack -c "\
-SELECT \
-  li_vsn_id \
-FROM linkinfo \
-WHERE li_material_id = '$1' \
-")
-if [[ -z "${version_id}" ]] ; then
-  version_id=$(psql -At -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack -c "\
-  SELECT \
-    fi_serial \
-  FROM filler \
-  WHERE fi_video_src = '$1' \
-  ")
-  fi_location=$(psql -At -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack -c "\
-  SELECT \
-    trim(fi_location) \
-  FROM filler \
-  WHERE fi_video_src = '$1' \
-  ")
-  filler=1
-fi
+    # get version id
+    version_id=$(psql -At -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack -c "\
+    SELECT \
+        li_vsn_id \
+    FROM linkinfo \
+    WHERE li_material_id = '$1' \
+    ")
+    if [[ -z "${version_id}" ]] ; then
+        version_id=$(psql -At -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack -c "\
+        SELECT \
+        fi_serial \
+        FROM filler \
+        WHERE fi_video_src = '$1' \
+        ")
+        fi_location=$(psql -At -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack -c "\
+        SELECT \
+        trim(fi_location) \
+        FROM filler \
+        WHERE fi_video_src = '$1' \
+        ")
+        filler=1
+    fi
 
-if [[ -z "${version_id}" ]] ; then
-    >&2 echo "No results found for ${1}."
-else
+    if [[ -z "${version_id}" ]] ; then
+        >&2 echo "No results found for ${1}."
+    else
+        echo "<temp_pbcore>" >> "${PSQLOUTPUT}"
+        echo "<!--The version id for $1 is $version_id-->" >> "${PSQLOUTPUT}"
 
-echo "<temp_pbcore>" >> "${PSQLOUTPUT}"
-echo "<!--The version id for $1 is $version_id-->" >> "${PSQLOUTPUT}"
+        if [[ "${filler}" = 1 ]] ; then
+            psql -H -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack --table-attr="note='titles'" -c "\
+            SELECT \
+            fi_serial,\
+            trim(fi_location) as asset_type,\
+            trim(fi_location) as series_title,\
+            trim(fi_title) AS episode_title,\
+            trim(fi_title2) AS subtitle,\
+            fi_length AS instantiationDuration,\
+            trim(fi_video_src) as material_id,\
+            fi_date as date \
+            FROM filler \
+            WHERE fi_video_src = '$1' \
+            " | sed 's/&nbsp; //g' >> "${PSQLOUTPUT}"
 
-if [[ "${filler}" = 1 ]] ; then
-  psql -H -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack --table-attr="note='titles'" -c "\
-  SELECT \
-  fi_serial,\
-  trim(fi_location) as asset_type,\
-  trim(fi_location) as series_title,\
-  trim(fi_title) AS episode_title,\
-  trim(fi_title2) AS subtitle,\
-  fi_length AS instantiationDuration,\
-  trim(fi_video_src) as material_id,\
-  fi_date as date \
-  FROM filler \
-  WHERE fi_video_src = '$1' \
-  " | sed 's/&nbsp; //g' >> "${PSQLOUTPUT}"
+            psql -H -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack --table-attr="note='notes'" -c "\
+            SELECT \
+            no_sequence as order, \
+            trim(no_text) as description \
+            FROM notes \
+            WHERE no_parent = '$version_id' \
+            AND no_location = '$fi_location' \
+            ORDER BY no_text \
+            " | sed 's/&nbsp; //g' >> "${PSQLOUTPUT}"
+        else
+            # get series id
+            series_id=$(psql -At -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack -c "\
+            SELECT \
+                ser_serial \
+            FROM quad_tab \
+            WHERE vsn_serial = '$version_id' \
+            ")
 
-  psql -H -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack --table-attr="note='notes'" -c "\
-  SELECT \
-    no_sequence as order, \
-    trim(no_text) as description \
-  FROM notes \
-  WHERE no_parent = '$version_id' \
-  AND no_location = '$fi_location' \
-  ORDER BY no_text \
-  " | sed 's/&nbsp; //g' >> "${PSQLOUTPUT}"
-else
-# get series id
-series_id=$(psql -At -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack -c "\
-SELECT \
-    ser_serial \
-FROM quad_tab \
-WHERE vsn_serial = '$version_id' \
-")
+            # todo: verify version id finds a match before proceeding
 
-# todo: verify version id finds a match before proceeding
+            echo "<!--The series id for $1 is $series_id-->" >> "${PSQLOUTPUT}"
+            psql -H -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack --table-attr="note='titles'" -c "\
+            SELECT \
+                li_serial,\
+                li_vsn_id,\
+                li_length_char AS instantiationDuration, \
+                li_in_char AS instantiationTimeStart, \
+                quad_tab.ser_type AS asset_type, \
+                trim(quad_tab.ser_title) as series_title_cap, \
+                trim(series_ac_titles.ttl_text) AS series_title, \
+                trim(quad_tab.pg_title) as episode_title_cap, \
+                trim(episode_ac_titles.ttl_text) AS episode_title, \
+                quad_tab.vsn_serial as vsn_serial, \
+                quad_tab.pg_serial as pg_serial \
+            FROM linkinfo,quad_tab \
+            \
+            LEFT OUTER JOIN titles AS series_ac_titles ON \
+            series_ac_titles.ttl_ser_id = quad_tab.ser_serial \
+            AND series_ac_titles.ttl_prog_id = '-1' \
+            AND series_ac_titles.ttl_type = 'AC' \
+            \
+            LEFT OUTER JOIN titles AS episode_ac_titles ON \
+            episode_ac_titles.ttl_prog_id = quad_tab.pg_serial \
+            AND episode_ac_titles.ttl_type = 'AC' \
+            \
+            WHERE li_material_id = '$1' \
+            AND linkinfo.li_vsn_id = quad_tab.vsn_serial \
+            " | sed 's/&nbsp; //g' >> "${PSQLOUTPUT}"
 
-echo "<!--The series id for $1 is $series_id-->" >> "${PSQLOUTPUT}"
-psql -H -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack --table-attr="note='titles'" -c "\
-SELECT \
-  li_serial,\
-  li_vsn_id,\
-  li_length_char AS instantiationDuration, \
-  li_in_char AS instantiationTimeStart, \
-  quad_tab.ser_type AS asset_type, \
-  trim(quad_tab.ser_title) as series_title_cap, \
-  trim(series_ac_titles.ttl_text) AS series_title, \
-  trim(quad_tab.pg_title) as episode_title_cap, \
-  trim(episode_ac_titles.ttl_text) AS episode_title, \
-  quad_tab.vsn_serial as vsn_serial, \
-  quad_tab.pg_serial as pg_serial \
-FROM linkinfo,quad_tab \
-\
-LEFT OUTER JOIN titles AS series_ac_titles ON \
-series_ac_titles.ttl_ser_id = quad_tab.ser_serial \
-AND series_ac_titles.ttl_prog_id = '-1' \
-AND series_ac_titles.ttl_type = 'AC' \
-\
-LEFT OUTER JOIN titles AS episode_ac_titles ON \
-episode_ac_titles.ttl_prog_id = quad_tab.pg_serial \
-AND episode_ac_titles.ttl_type = 'AC' \
-\
-WHERE li_material_id = '$1' \
-AND linkinfo.li_vsn_id = quad_tab.vsn_serial \
-" | sed 's/&nbsp; //g' >> "${PSQLOUTPUT}"
+            psql -H -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack --table-attr="note='proguide'" -c "\
+            SELECT \
+                trim(pgu_location) as descriptionType,\
+                trim(pgu_text) as description,\
+                pgu_serial AS ref \
+            FROM proguide \
+            WHERE pgu_vsn_id = '$version_id' \
+            " | sed 's/&nbsp; //g' >> "${PSQLOUTPUT}"
 
-psql -H -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack --table-attr="note='proguide'" -c "\
-SELECT \
-  trim(pgu_location) as descriptionType,\
-  trim(pgu_text) as description,\
-  pgu_serial AS ref \
-FROM proguide \
-WHERE pgu_vsn_id = '$version_id' \
-" | sed 's/&nbsp; //g' >> "${PSQLOUTPUT}"
+            psql -H -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack --table-attr="note='progdesc_version'" -c "\
+            SELECT \
+                pde_disp_ord as order, \
+                trim(pde_text) as description \
+            FROM progdesc \
+            WHERE pde_vsn_id = '$version_id' \
+            ORDER BY pde_disp_ord \
+            " | sed 's/&nbsp; //g' >> "${PSQLOUTPUT}"
 
-psql -H -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack --table-attr="note='progdesc_version'" -c "\
-SELECT \
-  pde_disp_ord as order, \
-  trim(pde_text) as description \
-FROM progdesc \
-WHERE pde_vsn_id = '$version_id' \
-ORDER BY pde_disp_ord \
-" | sed 's/&nbsp; //g' >> "${PSQLOUTPUT}"
+            psql -H -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack --table-attr="note='progdesc_series'" -c "\
+            SELECT \
+                pde_disp_ord as order, \
+                trim(pde_text) as description \
+            FROM progdesc \
+            WHERE pde_ser_id = '$series_id' \
+            AND pde_prog_id = '-1' \
+            ORDER BY pde_disp_ord \
+            " | sed 's/&nbsp; //g' >> "${PSQLOUTPUT}"
 
-psql -H -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack --table-attr="note='progdesc_series'" -c "\
-SELECT \
-  pde_disp_ord as order, \
-  trim(pde_text) as description \
-FROM progdesc \
-WHERE pde_ser_id = '$series_id' \
-AND pde_prog_id = '-1' \
-ORDER BY pde_disp_ord \
-" | sed 's/&nbsp; //g' >> "${PSQLOUTPUT}"
+            # ok this covers similar turf as the 'titles' table above, consolidate these
+            psql -H -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack --table-attr="note='linkinfo'" -c "\
+            SELECT \
+                l.li_serial, \
+                l.li_vsn_id AS vsn_id, \
+                l.li_in_char AS timeStart, \
+                l.li_length_char as duration, \
+                l.li_use_for_air as use_for_air, \
+                trim(l.li_material_id) as material_id, \
+                string_agg(trim(notes.no_text), ' ') AS air_reason \
+            FROM ( SELECT
+                li_serial, \
+                li_vsn_id, \
+                li_in_char, \
+                li_length_char, \
+                li_use_for_air, \
+                li_material_id \
+            FROM linkinfo ) AS l \
+            LEFT OUTER JOIN notes ON \
+            notes.no_parent = li_serial \
+            AND notes.no_location = 'tapelink' \
+            \
+            WHERE li_vsn_id = '$version_id' \
+            GROUP BY li_serial, l.li_vsn_id, l.li_in_char, l.li_length_char, l.li_use_for_air, l.li_material_id \
+            " | sed 's/&nbsp; //g' | sed 's/{NULL}//g' >> "${PSQLOUTPUT}"
 
-# ok this covers similar turf as the 'titles' table above, consolidate these
-psql -H -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack --table-attr="note='linkinfo'" -c "\
-SELECT \
-  l.li_serial, \
-  l.li_vsn_id AS vsn_id, \
-  l.li_in_char AS timeStart, \
-  l.li_length_char as duration, \
-  l.li_use_for_air as use_for_air, \
-  trim(l.li_material_id) as material_id, \
-  string_agg(trim(notes.no_text), ' ') AS air_reason \
-FROM ( SELECT
-  li_serial, \
-  li_vsn_id, \
-  li_in_char, \
-  li_length_char, \
-  li_use_for_air, \
-  li_material_id \
-  FROM linkinfo ) AS l \
-LEFT OUTER JOIN notes ON \
-notes.no_parent = li_serial \
-AND notes.no_location = 'tapelink' \
-\
-WHERE li_vsn_id = '$version_id' \
-GROUP BY li_serial, l.li_vsn_id, l.li_in_char, l.li_length_char, l.li_use_for_air, l.li_material_id \
-" | sed 's/&nbsp; //g' | sed 's/{NULL}//g' >> "${PSQLOUTPUT}"
-
-fi
-echo "</temp_pbcore>" >> "${PSQLOUTPUT}"
-fi
-shift
+        fi
+            echo "</temp_pbcore>" >> "${PSQLOUTPUT}"
+    fi
+    shift
 done
 echo "</temp_pbcore_set>" >> "${PSQLOUTPUT}"
 
