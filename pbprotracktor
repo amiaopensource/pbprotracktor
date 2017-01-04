@@ -39,6 +39,22 @@ FROM linkinfo \
 WHERE li_material_id = '$1' \
 ")
 if [[ -z "${version_id}" ]] ; then
+  version_id=$(psql -At -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack -c "\
+  SELECT \
+    fi_serial \
+  FROM filler \
+  WHERE fi_video_src = '$1' \
+  ")
+  fi_location=$(psql -At -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack -c "\
+  SELECT \
+    trim(fi_location) \
+  FROM filler \
+  WHERE fi_video_src = '$1' \
+  ")
+  filler=1
+fi
+
+if [[ -z "${version_id}" ]] ; then
     >&2 echo "No results found for ${1}."
     exit 1
 fi
@@ -47,6 +63,31 @@ PSQLOUTPUT=$(_maketemp)
 echo "<temp_pbcore>" > "${PSQLOUTPUT}"
 echo "<!--The version id for $1 is $version_id-->" >> "${PSQLOUTPUT}"
 
+if [[ "${filler}" = 1 ]] ; then
+  psql -H -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack --table-attr="note='titles'" -c "\
+  SELECT \
+  fi_serial,\
+  trim(fi_location) as asset_type,\
+  trim(fi_location) as series_title,\
+  trim(fi_title) AS episode_title,\
+  trim(fi_title2) AS subtitle,\
+  fi_length AS instantiationDuration,\
+  trim(fi_video_src) as material_id,\
+  fi_date as date \
+  FROM filler \
+  WHERE fi_video_src = '$1' \
+  " | sed 's/&nbsp; //g' >> "${PSQLOUTPUT}"
+
+  psql -H -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack --table-attr="note='notes'" -c "\
+  SELECT \
+    no_sequence as order, \
+    trim(no_text) as description \
+  FROM notes \
+  WHERE no_parent = '$version_id' \
+  AND no_location = '$fi_location' \
+  ORDER BY no_text \
+  " | sed 's/&nbsp; //g' >> "${PSQLOUTPUT}"
+else
 # get series id
 series_id=$(psql -At -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack -c "\
 SELECT \
@@ -140,6 +181,7 @@ WHERE li_vsn_id = '$version_id' \
 GROUP BY li_serial, l.li_vsn_id, l.li_in_char, l.li_length_char, l.li_use_for_air, l.li_material_id \
 " | sed 's/&nbsp; //g' | sed 's/{NULL}//g' >> "${PSQLOUTPUT}"
 
+fi
 echo "</temp_pbcore>" >> "${PSQLOUTPUT}"
 
 xsltproc "${SCRIPTDIR}/psql2pbcore.xsl" "${PSQLOUTPUT}"

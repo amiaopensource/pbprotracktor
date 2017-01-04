@@ -8,6 +8,7 @@
       <xsl:variable name="assetType">
         <xsl:choose>
           <xsl:when test="table[@note='titles']/tr[2]/td[count(../../tr[1]/th[.='asset_type']/preceding-sibling::*)+1]='P'">Program</xsl:when>
+          <xsl:when test="table[@note='titles']/tr[2]/td[count(../../tr[1]/th[.='asset_type']/preceding-sibling::*)+1]='promo'">Promo</xsl:when>
           <xsl:otherwise>Episode</xsl:otherwise>
         </xsl:choose>
       </xsl:variable>
@@ -20,6 +21,7 @@
       <xsl:variable name="secondaryTitleType">
         <xsl:choose>
           <xsl:when test="table[@note='titles']/tr[2]/td[count(../../tr[1]/th[.='asset_type']/preceding-sibling::*)+1]='P'">Subtitle</xsl:when>
+          <xsl:when test="table[@note='titles']/tr[2]/td[count(../../tr[1]/th[.='asset_type']/preceding-sibling::*)+1]='promo'">Title</xsl:when>
           <xsl:otherwise>Episode</xsl:otherwise>
         </xsl:choose>
       </xsl:variable>
@@ -32,7 +34,13 @@
       <!-- identifiers -->
       <xsl:call-template name="identifier">
         <xsl:with-param name="identifier" select="table[@note='titles']/tr[2]/td[count(../../tr[1]/th[.='vsn_serial']/preceding-sibling::*)+1]"/>
-        <xsl:with-param name="source">vsn_serial</xsl:with-param>
+        <xsl:with-param name="source">
+          <xsl:choose>
+            <xsl:when test="table[@note='titles']/tr[1]/th[.='vsn_serial']">vsn_serial</xsl:when>
+            <xsl:when test="table[@note='titles']/tr[1]/th[.='fi_serial']">fi_serial</xsl:when>
+            <xsl:otherwise>identifier</xsl:otherwise>
+          </xsl:choose>
+        </xsl:with-param>
         <xsl:with-param name="annotation">protrack</xsl:with-param>
       </xsl:call-template>
 
@@ -66,6 +74,18 @@
           <xsl:with-param name="descriptionType" select="td[count(../../tr[1]/th[.='descriptiontype']/preceding-sibling::*)+1]"/>
         </xsl:call-template>
       </xsl:for-each>
+
+      <xsl:variable name="catdescription_notes">
+        <xsl:for-each select="table[@note='notes']/tr/td[count(../../tr/th[.='description']/preceding-sibling::*)+1]">
+          <xsl:value-of select="."/>
+          <xsl:text> </xsl:text>
+          <!-- todo: remove the last occurrence of the above space -->
+        </xsl:for-each>
+      </xsl:variable>
+      <xsl:call-template name="description">
+        <xsl:with-param name="description" select="$catdescription_notes"/>
+        <xsl:with-param name="descriptionType">Notes</xsl:with-param>
+      </xsl:call-template>
 
       <xsl:variable name="catdescription_version">
         <xsl:for-each select="table[@note='progdesc_version']/tr/td[count(../../tr/th[.='description']/preceding-sibling::*)+1]">
@@ -101,6 +121,13 @@
           <xsl:with-param name="air_reason" select="td[count(../../tr[1]/th[.='air_reason']/preceding-sibling::*)+1]"/>
         </xsl:call-template>
       </xsl:for-each>
+
+      <xsl:if test="table[@note='titles']/tr[1]/th[.='fi_serial']">
+        <xsl:call-template name="instantiation">
+          <xsl:with-param name="duration" select="table[@note='titles']/tr/td[count(../../tr[1]/th[.='instantiationduration']/preceding-sibling::*)+1]"/>
+          <xsl:with-param name="material_id" select="table[@note='titles']/tr/td[count(../../tr[1]/th[.='material_id']/preceding-sibling::*)+1]"/>
+        </xsl:call-template>
+      </xsl:if>
 
     </pbcoreDescriptionDocument>
   </xsl:template>
