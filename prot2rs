@@ -1,7 +1,6 @@
 #!/bin/bash
 SCRIPTDIR="$(dirname "$0")"
 CONF_FILE="${SCRIPTDIR}/pbpro.conf"
-MEDIAID="${1}"
 
 _maketemp(){
     mktemp -q "/tmp/$(basename "${0}").XXXXXX"
@@ -29,6 +28,8 @@ fi
 TEMPXML=$(_maketemp)
 TEMPPBCORE=$(_maketemp)
 
+while [ "${*}" != "" ] ; do
+MEDIAID="${1}"
 "${SCRIPTDIR}/pbprotracktor" "${MEDIAID}" > "${TEMPXML}"
 if [ ! -s "${TEMPXML}" ] ; then
   echo "pbprotracktor did not return a result for ${MEDIAID}, exiting."
@@ -52,3 +53,5 @@ fi
 if [ -f "${TEMPXML}" ] ;then
     rm "${TEMPXML}"
 fi
+shift
+done

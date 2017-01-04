@@ -1,6 +1,16 @@
 <?xml version="1.0"?>
 <xsl:stylesheet version="1.0" xmlns="http://www.pbcore.org/PBCore/PBCoreNamespace.html" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.pbcore.org/PBCore/PBCoreNamespace.html http://pbcore.org/xsd/pbcore-2.0.xsd">
 <xsl:output encoding="UTF-8" method="xml" version="1.0" indent="yes"/>
+  <xsl:template match="temp_pbcore_set">
+    <xsl:if test="count(temp_pbcore)>0">
+      <pbcoreCollection>
+        <xsl:attribute name="collectionDate">
+          <xsl:value-of select="$now"/>
+        </xsl:attribute>
+        <xsl:apply-templates select="temp_pbcore"/>
+      </pbcoreCollection>
+    </xsl:if>
+  </xsl:template>
   <xsl:template match="temp_pbcore">
     <pbcoreDescriptionDocument>
 

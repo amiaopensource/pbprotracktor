@@ -31,6 +31,9 @@ if [[ -z "$PROTRACK_DB_URL" || -z "$PROTRACK_DB_USER" ]] ; then
     exit 1
 fi
 
+PSQLOUTPUT=$(_maketemp)
+echo "<temp_pbcore_set>" > "${PSQLOUTPUT}"
+while [ "${*}" != "" ] ; do
 # get version id
 version_id=$(psql -At -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack -c "\
 SELECT \
@@ -56,11 +59,9 @@ fi
 
 if [[ -z "${version_id}" ]] ; then
     >&2 echo "No results found for ${1}."
-    exit 1
-fi
-PSQLOUTPUT=$(_maketemp)
+else
 
-echo "<temp_pbcore>" > "${PSQLOUTPUT}"
+echo "<temp_pbcore>" >> "${PSQLOUTPUT}"
 echo "<!--The version id for $1 is $version_id-->" >> "${PSQLOUTPUT}"
 
 if [[ "${filler}" = 1 ]] ; then
@@ -183,5 +184,9 @@ GROUP BY li_serial, l.li_vsn_id, l.li_in_char, l.li_length_char, l.li_use_for_ai
 
 fi
 echo "</temp_pbcore>" >> "${PSQLOUTPUT}"
+fi
+shift
+done
+echo "</temp_pbcore_set>" >> "${PSQLOUTPUT}"
 
-xsltproc "${SCRIPTDIR}/psql2pbcore.xsl" "${PSQLOUTPUT}"
+xsltproc --stringparam now "$(date +%FT%T)" "${SCRIPTDIR}/psql2pbcore.xsl" "${PSQLOUTPUT}"
