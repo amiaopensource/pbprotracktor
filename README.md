@@ -1,10 +1,12 @@
 # What is this?
 
-This is a hastily-written bash script which makes calls to a postgres database to output html fragments in an order so that the data may be subsequently converted into PBCore. Use at your own risk.
+`pbprotrackor` is a bash script which queries the postgres database of Protrack to output PBCore. Use at your own risk. Some other scripts may be added here to facilitate finangling that PBCore or sending it to other systems. 
 
 # How valid is the PBCore?
 
-Sometimes valid
+Mostly valid.
+
+/# todo: add validity checks.
 
 # How to use?
 
@@ -14,9 +16,20 @@ To pull a PBCore XML from the database where the media attachment's id is `SHOW1
 pbprotrackor SHOW1324
 ```
 
+or gather many PBCore records at once via:
+
+```
+pbprotrackor SHOW1324 SHOW1325 SOMEOTHERSHOW123 U812
+```
+
+The output will only be XML. There are no error codes (yet) or options. Also presently the query is only started via the media attachment id.
+
+Also note that postgres outputs the XML with no line breaks. If you require pretty XML try piping the output through xmlstarlet, such as:
+
+```
+pbprotrackor SHOW1324 SHOW1325 SOMEOTHERSHOW123 U812 | xml fo
+```
+
 # License
 
-Copyright © 2016 Dave Rice <dave@dericed.com>
-This work is free. You can redistribute it and/or modify it under the
-terms of the WTFPL Public License, Version 2, as published by Sam
-Hocevar.
+See [License](#license).
