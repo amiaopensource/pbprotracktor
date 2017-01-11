@@ -3,15 +3,6 @@
 SCRIPTDIR=$(dirname $(which "${0}"))
 CONF_FILE="${SCRIPTDIR}/pbpro.conf"
 
-_maketemp(){
-    mktemp -q "/tmp/$(basename "${0}").XXXXXX"
-    if [ "${?}" -ne 0 ]; then
-        >&2 echo "${0}: Can't create temp file, exiting..."
-        _writeerrorlog "_maketemp" "was unable to create the temp file, so the script had to exit."
-        exit 1
-    fi
-}
-
 if [ ! -f "${CONF_FILE}" ] ; then
     echo "A configuration file is needed."
     echo "Please edit ${CONF_FILE}"
@@ -31,161 +22,208 @@ if [[ -z "$PROTRACK_DB_URL" || -z "$PROTRACK_DB_USER" ]] ; then
     exit 1
 fi
 
-PSQLOUTPUT=$(_maketemp)
-echo "<temp_pbcore_set>" > "${PSQLOUTPUT}"
-while [ "${*}" != "" ] ; do
-    # get version id
-    version_id=$(psql -At -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack -c "\
-    SELECT \
-        li_vsn_id \
-    FROM linkinfo \
-    WHERE li_material_id = '$1' \
-    ")
-    if [[ -z "${version_id}" ]] ; then
-        version_id=$(psql -At -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack -c "\
-        SELECT \
-        fi_serial \
-        FROM filler \
-        WHERE fi_video_src = '$1' \
-        ")
-        fi_location=$(psql -At -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack -c "\
-        SELECT \
-        trim(fi_location) \
-        FROM filler \
-        WHERE fi_video_src = '$1' \
-        ")
-        filler=1
-    fi
-
-    if [[ -z "${version_id}" ]] ; then
-        >&2 echo "No results found for ${1}."
-    else
-        echo "<temp_pbcore>" >> "${PSQLOUTPUT}"
-        echo "<!--The version id for $1 is $version_id-->" >> "${PSQLOUTPUT}"
-
-        if [[ "${filler}" = 1 ]] ; then
-            psql -H -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack --table-attr="note='titles'" -c "\
-            SELECT \
-            fi_serial,\
-            trim(fi_location) as asset_type,\
-            trim(fi_location) as series_title,\
-            trim(fi_title) AS episode_title,\
-            trim(fi_title2) AS subtitle,\
-            fi_length AS instantiationDuration,\
-            trim(fi_video_src) as material_id,\
-            fi_date as date \
-            FROM filler \
-            WHERE fi_video_src = '$1' \
-            " | sed 's/&nbsp; //g' >> "${PSQLOUTPUT}"
-
-            psql -H -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack --table-attr="note='notes'" -c "\
-            SELECT \
-            no_sequence as order, \
-            trim(no_text) as description \
-            FROM notes \
-            WHERE no_parent = '$version_id' \
-            AND no_location = '$fi_location' \
-            ORDER BY no_text \
-            " | sed 's/&nbsp; //g' >> "${PSQLOUTPUT}"
-        else
-            # get series id
-            series_id=$(psql -At -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack -c "\
-            SELECT \
-                ser_serial \
-            FROM quad_tab \
-            WHERE vsn_serial = '$version_id' \
-            ")
-
-            # todo: verify version id finds a match before proceeding
-
-            echo "<!--The series id for $1 is $series_id-->" >> "${PSQLOUTPUT}"
-            psql -H -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack --table-attr="note='titles'" -c "\
-            SELECT \
-                li_serial,\
-                li_vsn_id,\
-                li_length_char AS instantiationDuration, \
-                li_in_char AS instantiationTimeStart, \
-                quad_tab.ser_type AS asset_type, \
-                trim(quad_tab.ser_title) as series_title_cap, \
-                trim(series_ac_titles.ttl_text) AS series_title, \
-                trim(quad_tab.pg_title) as episode_title_cap, \
-                trim(episode_ac_titles.ttl_text) AS episode_title, \
-                quad_tab.vsn_serial as vsn_serial, \
-                quad_tab.pg_serial as pg_serial \
-            FROM linkinfo,quad_tab \
-            \
-            LEFT OUTER JOIN titles AS series_ac_titles ON \
-            series_ac_titles.ttl_ser_id = quad_tab.ser_serial \
-            AND series_ac_titles.ttl_prog_id = '-1' \
-            AND series_ac_titles.ttl_type = 'AC' \
-            \
-            LEFT OUTER JOIN titles AS episode_ac_titles ON \
-            episode_ac_titles.ttl_prog_id = quad_tab.pg_serial \
-            AND episode_ac_titles.ttl_type = 'AC' \
-            \
-            WHERE li_material_id = '$1' \
-            AND linkinfo.li_vsn_id = quad_tab.vsn_serial \
-            " | sed 's/&nbsp; //g' >> "${PSQLOUTPUT}"
-
-            psql -H -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack --table-attr="note='proguide'" -c "\
-            SELECT \
-                trim(pgu_location) as descriptionType,\
-                trim(pgu_text) as description,\
-                pgu_serial AS ref \
-            FROM proguide \
-            WHERE pgu_vsn_id = '$version_id' \
-            " | sed 's/&nbsp; //g' >> "${PSQLOUTPUT}"
-
-            psql -H -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack --table-attr="note='progdesc_version'" -c "\
-            SELECT \
-                pde_disp_ord as order, \
-                trim(pde_text) as description \
-            FROM progdesc \
-            WHERE pde_vsn_id = '$version_id' \
-            ORDER BY pde_disp_ord \
-            " | sed 's/&nbsp; //g' >> "${PSQLOUTPUT}"
-
-            psql -H -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack --table-attr="note='progdesc_series'" -c "\
-            SELECT \
-                pde_disp_ord as order, \
-                trim(pde_text) as description \
-            FROM progdesc \
-            WHERE pde_ser_id = '$series_id' \
-            AND pde_prog_id = '-1' \
-            ORDER BY pde_disp_ord \
-            " | sed 's/&nbsp; //g' >> "${PSQLOUTPUT}"
-
-            # ok this covers similar turf as the 'titles' table above, consolidate these
-            psql -H -h "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack --table-attr="note='linkinfo'" -c "\
-            SELECT \
-                l.li_serial, \
-                l.li_vsn_id AS vsn_id, \
-                l.li_in_char AS timeStart, \
-                l.li_length_char as duration, \
-                l.li_use_for_air as use_for_air, \
-                trim(l.li_material_id) as material_id, \
-                string_agg(trim(notes.no_text), ' ') AS air_reason \
-            FROM ( SELECT
-                li_serial, \
-                li_vsn_id, \
-                li_in_char, \
-                li_length_char, \
-                li_use_for_air, \
-                li_material_id \
-            FROM linkinfo ) AS l \
-            LEFT OUTER JOIN notes ON \
-            notes.no_parent = li_serial \
-            AND notes.no_location = 'tapelink' \
-            \
-            WHERE li_vsn_id = '$version_id' \
-            GROUP BY li_serial, l.li_vsn_id, l.li_in_char, l.li_length_char, l.li_use_for_air, l.li_material_id \
-            " | sed 's/&nbsp; //g' | sed 's/{NULL}//g' >> "${PSQLOUTPUT}"
-
-        fi
-            echo "</temp_pbcore>" >> "${PSQLOUTPUT}"
-    fi
-    shift
-done
-echo "</temp_pbcore_set>" >> "${PSQLOUTPUT}"
-
-xsltproc --stringparam now "$(date +%FT%T)" "${SCRIPTDIR}/psql2pbcore.xsl" "${PSQLOUTPUT}"
+psql -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack -c "\
+    SELECT
+        XMLELEMENT(
+            NAME \"pbcoreCollection\",
+            XMLATTRIBUTES(
+                now() as \"collectionDate\",
+                'http://www.pbcore.org/PBCore/PBCoreNamespace.html' as \"xmlns\"
+        ),
+        pbcore_episodes_xml,
+        pbcore_filler_xml)
+    FROM (
+        SELECT
+            XMLAGG(
+                XMLELEMENT(
+                    NAME \"pbcoreDescriptionDocument\",\
+                    XMLELEMENT(
+                        NAME \"pbcoreAssetType\",
+                        CASE WHEN ser_type = 'P' THEN 'Program' ELSE 'Episode' END
+                    ),
+                    XMLELEMENT(
+                        NAME \"pbcoreIdentifier\",
+                        XMLATTRIBUTES('vsn_serial' as \"source\"),
+                        vsn_serial
+                    ),
+                    (SELECT
+                    CASE WHEN ttl_text is not null THEN
+                        XMLELEMENT(NAME \"pbcoreTitle\",
+                            XMLATTRIBUTES(CASE WHEN ser_type = 'P' THEN 'Program' ELSE 'Series' END as \"titleType\"),
+                            trim(ttl_text))
+                    END
+                    FROM titles as series_ac_titles
+                    WHERE series_ac_titles.ttl_ser_id = quad_tab.ser_serial AND
+                        series_ac_titles.ttl_prog_id = '-1' AND
+                        series_ac_titles.ttl_type = 'AC'
+                    ),
+                    CASE WHEN ser_title is not null THEN XMLELEMENT(NAME \"pbcoreTitle\",
+                        XMLATTRIBUTES(
+                            CASE WHEN ser_type = 'P' THEN 'Program' ELSE 'Series' END as \"titleType\",
+                            'unpreserved cased' as \"annotation\"
+                        ),
+                        initcap(trim(ser_title)) )
+                    END,
+                    (SELECT
+                        XMLELEMENT(NAME \"pbcoreTitle\",
+                            XMLATTRIBUTES(CASE WHEN ser_type = 'P' THEN 'Subtitle' ELSE 'Episode' END as \"titleType\"),
+                            trim(ttl_text))
+                    FROM titles AS episode_ac_titles
+                    WHERE episode_ac_titles.ttl_prog_id = quad_tab.pg_serial AND
+                        episode_ac_titles.ttl_type = 'AC'
+                    ),
+                    CASE WHEN pg_title is not null THEN
+                        XMLELEMENT(NAME \"pbcoreTitle\",
+                            XMLATTRIBUTES(
+                                CASE WHEN ser_type = 'P' THEN 'Subtitle' ELSE 'Episode' END as \"titleType\",
+                                'unpreserved case' as \"annotation\"
+                            ),
+                            initcap(trim(pg_title)) )
+                    END,
+                    (SELECT
+                        XMLAGG(XMLELEMENT(NAME \"pbcoreDescription\",
+                            XMLATTRIBUTES(trim(pgu_location) as \"descriptionType\"),
+                            trim(pgu_text))
+                        )
+                    FROM proguide
+                    WHERE pgu_vsn_id = vsn_serial
+                    ),
+                    (SELECT
+                        CASE WHEN string_agg(pde_text,' ') is not null THEN
+                            XMLELEMENT(NAME \"pbcoreDescription\",
+                                XMLATTRIBUTES('Series' as \"descriptionType\"),
+                                trim(string_agg(pde_text,' ' ORDER BY pde_disp_ord ASC)))
+                        END
+                    FROM progdesc
+                    WHERE pde_ser_id = ser_serial AND pde_prog_id = '-1'
+                    ),
+                    (SELECT
+                        CASE WHEN string_agg(pde_text,' ') is not null THEN
+                            XMLELEMENT(NAME \"pbcoreDescription\",
+                                XMLATTRIBUTES('Notes' as \"descriptionType\"),
+                                trim(string_agg(pde_text,' ' ORDER BY pde_disp_ord ASC)))
+                        END
+                    FROM progdesc
+                    WHERE pde_vsn_id = vsn_serial
+                    ),
+                    (SELECT XMLAGG (
+                        XMLELEMENT(NAME \"pbcoreInstantiation\",
+                            XMLELEMENT(NAME \"instantiationIdentifier\",
+                                XMLATTRIBUTES('li_serial' as \"source\"),
+                                li_serial),
+                            XMLELEMENT(NAME \"instantiationIdentifier\",
+                                XMLATTRIBUTES('Media ID' as \"source\"),
+                                trim(li_material_id)),
+                            CASE WHEN li_cart_id is not null THEN
+                            XMLELEMENT(NAME \"instantiationIdentifier\",
+                                XMLATTRIBUTES('Cart ID' as \"source\"),
+                                trim(li_cart_id))
+                            END,
+                            XMLELEMENT(NAME \"instantiationDate\",
+                                XMLATTRIBUTES('availableStart' as \"dateType\"),
+                                li_start_date),
+                            XMLELEMENT(NAME \"instantiationDate\",
+                                XMLATTRIBUTES(
+                                    'availableEnd' as \"dateType\",
+                                    ':-/' as \"annotation\"
+                                ),
+                                li_end_date),
+                            XMLELEMENT(NAME \"instantiationLocation\"),
+                            XMLELEMENT(NAME \"instantiationTimeStart\",li_in_char),
+                            XMLELEMENT(NAME \"instantiationDuration\",li_length_char),
+                            CASE WHEN li_use_for_air = 0 THEN
+                                XMLELEMENT(NAME \"instantiationAnnotation\",
+                                    XMLATTRIBUTES('accessRestriction' as \"annotationType\"),
+                                    'Restricted')
+                            END,
+                            CASE WHEN li_cart_id is not null THEN
+                                XMLELEMENT(NAME \"instantiationAnnotation\",
+                                    XMLATTRIBUTES('accessRestriction' as \"annotationType\"),
+                                    'Restricted')
+                            END,
+                            (SELECT
+                                CASE WHEN string_agg(no_text,' ') is not null THEN
+                                    XMLELEMENT(NAME \"instantiationAnnotation\",
+                                        XMLATTRIBUTES('Technical Notes' as \"annotationType\"),
+                                        trim(string_agg(no_text,' ' ORDER BY no_sequence ASC)))
+                                END
+                            FROM notes
+                            WHERE notes.no_parent = li_serial AND notes.no_location = 'tapelink'
+                            )
+                        ) ORDER BY li_material_id ASC)
+                    FROM linkinfo WHERE linkinfo.li_vsn_id = quad_tab.vsn_serial
+                    )
+                )
+            ) as pbcore_episodes_xml
+        FROM quad_tab
+        WHERE quad_tab.vsn_serial IN (SELECT li_vsn_id FROM linkinfo WHERE li_material_id IN ($(printf "'%s'," "$@" | sed 's/,$//')))
+    ) AS pbcore_episodes_result ,
+    (
+        SELECT
+            XMLAGG(
+                XMLELEMENT(NAME \"pbcoreDescriptionDocument\",
+                    XMLELEMENT(NAME \"pbcoreAssetType\", 'Promo' ),
+                    XMLELEMENT(NAME \"pbcoreAssetDate\",
+                        XMLATTRIBUTES('catalogued' as \"dateType\"),
+                        fi_date ),
+                    XMLELEMENT(NAME \"pbcoreIdentifier\",
+                        XMLATTRIBUTES('fi_serial' as \"source\"),
+                        fi_serial ),
+                    XMLELEMENT(NAME \"pbcoreTitle\",
+                        XMLATTRIBUTES('Series' as \"titleType\"),
+                        initcap(trim(fi_location)) ),
+                    CASE WHEN fi_title is not null THEN
+                        XMLELEMENT(NAME \"pbcoreTitle\",
+                            XMLATTRIBUTES(
+                                'Interstitial' as \"titleType\",
+                                'unpreserved case' as \"annotation\"
+                            ),
+                            initcap(trim(fi_title))
+                        )
+                    END,
+                    CASE WHEN fi_title2 is not null THEN
+                        XMLELEMENT(NAME \"pbcoreTitle\",
+                            XMLATTRIBUTES(
+                                'Subtitle' as \"titleType\",
+                                'unpreserved case' as \"annotation\"
+                            ),
+                            initcap(trim(fi_title2))
+                        )
+                    END,
+                    CASE WHEN fi_notes is not null THEN
+                        XMLELEMENT(NAME \"pbcoreDescription\",
+                            XMLATTRIBUTES('Broadcast Notes' as \"descriptionType\"),
+                            concat_ws(' ',trim(fi_notes),trim(fi_notes2))
+                        )
+                    ELSE
+                        XMLELEMENT(NAME \"pbcoreDescription\")
+                    END,
+                    filler_notes,
+                    XMLELEMENT(NAME \"pbcoreInstantiation\",
+                        XMLELEMENT(NAME \"instantiationIdentifier\",
+                            XMLATTRIBUTES('Media ID' as \"source\"),
+                        trim(fi_video_src) ),
+                        XMLELEMENT(NAME \"instantiationLocation\", '' ),
+                        XMLELEMENT(NAME \"instantiationDuration\", fi_length2 ),
+                        CASE WHEN fi_length != fi_length2 THEN
+                            XMLELEMENT(NAME \"instantiationAnnotation\",
+                                XMLATTRIBUTES('minimum duration' as \"annotationType\"),
+                                fi_length
+                            )
+                        END
+                    )
+                )
+            ) as pbcore_filler_xml
+        FROM filler
+        LEFT JOIN (
+            SELECT no_parent AS fi_serial,
+                XMLELEMENT(NAME \"pbcoreDescription\",
+                    XMLATTRIBUTES('Abstract' as \"descriptionType\"),
+                    STRING_AGG( trim(no_text), ' ' ORDER BY no_sequence ASC)
+                ) as filler_notes
+            FROM notes
+            GROUP BY fi_serial
+        ) o using (fi_serial)
+        WHERE fi_video_src IN ( $(printf "'%s'," "$@" | sed 's/,$//') )
+    ) AS pbcore_filler_result
+"
