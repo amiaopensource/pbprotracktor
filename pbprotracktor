@@ -43,6 +43,11 @@ psql -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack -c "\
                     ),
                     XMLELEMENT(
                         NAME \"pbcoreIdentifier\",
+                        XMLATTRIBUTES('NOLA Code' as \"source\"),
+                        trim(vsn_nola_code)
+                    ),
+                    XMLELEMENT(
+                        NAME \"pbcoreIdentifier\",
                         XMLATTRIBUTES('vsn_serial' as \"source\"),
                         vsn_serial
                     ),
