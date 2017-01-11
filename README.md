@@ -8,6 +8,15 @@ Mostly valid.
 
 /# todo: add validity checks.
 
+# How to install?
+
+## Via Homebrew
+
+```
+brew tap amiaopensource/amiaos
+brew install pbprotrackor
+```
+
 # How to use?
 
 To pull a PBCore XML from the database where the media attachment's id is `SHOW1234`, try:
@@ -21,6 +30,8 @@ or gather many PBCore records at once via:
 ```
 pbprotrackor SHOW1324 SHOW1325 SOMEOTHERSHOW123 U812
 ```
+
+During the first run, `pbprotrackor` will prompt for a configuration file to be written which requires the ip address and a user name for the server which hosts ProTrack.
 
 The output will only be XML. There are no error codes (yet) or options. Also presently the query is only started via the media attachment id.
 
