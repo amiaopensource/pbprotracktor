@@ -106,6 +106,14 @@ psql -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack -c "\
                     FROM progdesc
                     WHERE pde_vsn_id = vsn_serial
                     ),
+                    CASE WHEN vsn_descript is not null THEN
+                        XMLELEMENT(NAME \"pbcoreDescription\",
+                            XMLATTRIBUTES(
+                                'Version' as \"descriptionType\",
+                                'unpreserved case' as \"annotation\"
+                            ),
+                            initcap(trim(vsn_descript)) )
+                    END,
                     (SELECT XMLAGG (
                         XMLELEMENT(NAME \"pbcoreInstantiation\",
                             XMLELEMENT(NAME \"instantiationIdentifier\",
