@@ -28,14 +28,21 @@ fi
 TEMPXML=$(_maketemp)
 TEMPPBCORE=$(_maketemp)
 
-while [ "${*}" != "" ] ; do
+_query_protrack_push_to_resourcespace(){
     MEDIAID="${1}"
+    echo -n "Working on ${MEDIAID}"
+    RESULTS="$(mysql -BNr -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "SELECT COUNT(ref) FROM resource WHERE archive != '3' and field8='${MEDIAID}' ;" 2> /dev/null)"
+    echo -n ", found ${RESULTS} record(s) in resourcespace"
+    if [ "${RESULTS}" = 0 ] ; then
+        echo ", skipping"
+    else
     "${SCRIPTDIR}/pbprotracktor" "${MEDIAID}" > "${TEMPXML}"
-    if [ ! -s "${TEMPXML}" ] ; then
-        echo "pbprotracktor did not return a result for ${MEDIAID}, exiting."
-        exit 1
+    xml val "${TEMPXML}" >/dev/null
+    if [ "${?}" != "0" ] ; then
+        echo "pbprotracktor did not return a result for ${MEDIAID}, skipping."
+        continue
     fi
-    SERIESTITLE=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -t -v "p:pbcoreDescriptionDocument/p:pbcoreTitle[@titleType='Series'][1]" "${TEMPXML}")
+    SERIESTITLE=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -t -v "//p:pbcoreDescriptionDocument[1]/p:pbcoreTitle[@titleType='Series'][1]" "${TEMPXML}")
     if [ -n "${SERIESTITLE}" ] ; then
         COLLECTION_ID=$(mysql -BNr -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "SELECT ref FROM collection WHERE name = '$(printf "%q" "${SERIESTITLE}")' LIMIT 1 ;")
     fi
@@ -53,5 +60,11 @@ while [ "${*}" != "" ] ; do
     if [ -f "${TEMPXML}" ] ;then
         rm "${TEMPXML}"
     fi
+    fi
+}
+
+while [ "${*}" != "" ] ; do
+    MEDIAID="${1}"
     shift
+    _query_protrack_push_to_resourcespace "${MEDIAID}"
 done

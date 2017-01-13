@@ -24,14 +24,16 @@ fi
 
 psql -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack -c "\
     SELECT
-        XMLELEMENT(
-            NAME \"pbcoreCollection\",
-            XMLATTRIBUTES(
-                now() as \"collectionDate\",
-                'http://www.pbcore.org/PBCore/PBCoreNamespace.html' as \"xmlns\"
-        ),
-        pbcore_episodes_xml,
-        pbcore_filler_xml)
+        CASE WHEN pbcore_episodes_xml is not null OR pbcore_filler_xml is not null THEN
+            XMLELEMENT(
+                NAME \"pbcoreCollection\",
+                XMLATTRIBUTES(
+                    now() as \"collectionDate\",
+                    'http://www.pbcore.org/PBCore/PBCoreNamespace.html' as \"xmlns\"
+            ),
+            pbcore_episodes_xml,
+            pbcore_filler_xml)
+        END
     FROM (
         SELECT
             XMLAGG(
