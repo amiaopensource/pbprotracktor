@@ -30,6 +30,12 @@ TEMPPBCORE=$(_maketemp)
 
 _query_protrack_push_to_resourcespace(){
     MEDIAID="${1}"
+    echo -n "Working on ${MEDIAID}"
+    RESULTS="$(mysql -BNr -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "SELECT COUNT(ref) FROM resource WHERE archive != '3' and field8='${MEDIAID}' ;" 2> /dev/null)"
+    echo -n ", found ${RESULTS} record(s) in resourcespace"
+    if [ "${RESULTS}" = 0 ] ; then
+        echo ", skipping"
+    else
     "${SCRIPTDIR}/pbprotracktor" "${MEDIAID}" > "${TEMPXML}"
     xml val "${TEMPXML}" >/dev/null
     if [ "${?}" != "0" ] ; then
@@ -53,6 +59,7 @@ _query_protrack_push_to_resourcespace(){
     fi
     if [ -f "${TEMPXML}" ] ;then
         rm "${TEMPXML}"
+    fi
     fi
 }
 
