@@ -30,11 +30,12 @@ TEMPPBCORE=$(_maketemp)
 
 while [ "${*}" != "" ] ; do
     MEDIAID="${1}"
+    shift
     "${SCRIPTDIR}/pbprotracktor" "${MEDIAID}" > "${TEMPXML}"
-        echo "pbprotracktor did not return a result for ${MEDIAID}, exiting."
-        exit 1
     xml val "${TEMPXML}" >/dev/null
     if [ "${?}" != "0" ] ; then
+        echo "pbprotracktor did not return a result for ${MEDIAID}, skipping."
+        continue
     fi
     SERIESTITLE=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -t -v "p:pbcoreDescriptionDocument/p:pbcoreTitle[@titleType='Series'][1]" "${TEMPXML}")
     if [ -n "${SERIESTITLE}" ] ; then
@@ -54,5 +55,4 @@ while [ "${*}" != "" ] ; do
     if [ -f "${TEMPXML}" ] ;then
         rm "${TEMPXML}"
     fi
-    shift
 done
