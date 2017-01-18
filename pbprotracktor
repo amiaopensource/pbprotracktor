@@ -237,6 +237,7 @@ psql -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack -c "\
                     STRING_AGG( trim(no_text), ' ' ORDER BY no_sequence ASC)
                 ) as filler_notes
             FROM notes
+            WHERE no_location = 'promo'
             GROUP BY fi_serial
         ) o using (fi_serial)
         WHERE fi_video_src IN ( $(printf "'%s'," "$@" | sed 's/,$//') )
