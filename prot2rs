@@ -25,6 +25,16 @@ fi
 
 . "${CONF_FILE}" || { echo "Missing ${CONF_FILE}. Exiting." ; exit 1 ;};
 
+OPTIND=1
+while getopts ":f:" OPT ; do
+    case "${OPT}" in
+        f) FROM_DATE="${OPTARG}";;
+        *) echo "bad option -${OPTARG}" ; _usage ;;
+        :) echo "Option -${OPTARG} requires an argument" ; _writeerrorlog "makeyoutube" "The option selected required an argument and none was provided. The script had to exit." ; exit 1 ;;
+    esac
+done
+shift $(( ${OPTIND} - 1 ))
+
 TEMPXML=$(_maketemp)
 TEMPPBCORE=$(_maketemp)
 
@@ -63,8 +73,14 @@ _query_protrack_push_to_resourcespace(){
     fi
 }
 
+if [[ -n "${FROM_DATE}" ]] ; then
+    psql -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -P pager=off -d protrack -c "SELECT fi_video_src FROM filler AS f LEFT JOIN notes AS n ON n.no_parent = f.fi_serial WHERE f.up_date BETWEEN '${FROM_DATE}' AND '3000-01-01' OR n.up_date BETWEEN '${FROM_DATE}' AND '3000-01-01'" | while read MEDIAID ; do
+        _query_protrack_push_to_resourcespace "${MEDIAID}"
+    done
+else
 while [ "${*}" != "" ] ; do
     MEDIAID="${1}"
     shift
     _query_protrack_push_to_resourcespace "${MEDIAID}"
 done
+fi
