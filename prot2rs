@@ -9,6 +9,7 @@ _usage(){
     echo "Usage: $(basename ${0}) [ -d /path/to/deliver/to/ ] fileorpackage1 [ fileorpackage2 ...]"
     echo "  -F DATE or Negative Integer (update ResourceSpace's records updated after the DATE provided (in YYYY-MM-DD form) or provide a negative number to update records updated within the past number of specified days)"
     echo "  -f DATE or Negative Integer (update ProTrack's records updated after the DATE provided (in YYYY-MM-DD form) or provide a negative number to update records updated within the past number of specified days)"
+    echo "  -t ( sets up a featured collection based on today's date )"
     echo "  -h ( display this help )"
     echo
 exit
@@ -38,10 +39,11 @@ fi
 . "${CONF_FILE}" || { echo "Missing ${CONF_FILE}. Exiting." ; exit 1 ;};
 
 OPTIND=1
-while getopts ":f:F:h" OPT ; do
+while getopts ":f:F:th" OPT ; do
     case "${OPT}" in
         f) FROM_DATE_PT="${OPTARG}";;
         F) FROM_DATE_RS="${OPTARG}";;
+        t) MAKETODAY="Y";;
         h) _usage;;
         *) echo "bad option -${OPTARG}" ; _usage ;;
         :) echo "Option -${OPTARG} requires an argument" ; _writeerrorlog "makeyoutube" "The option selected required an argument and none was provided. The script had to exit." ; exit 1 ;;
@@ -93,6 +95,26 @@ _query_protrack_push_to_resourcespace(){
     fi
     fi
 }
+
+_catalog_todays_airings(){
+    TODAY=$(date "+%Y-%m-%d")
+    DATECOLLECTION=$(mysql -BNr -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "SELECT ref FROM collection WHERE name = '$(printf "%q" "${TODAY}")' LIMIT 1 ;")
+    if [[ -z "${DATECOLLECTION}" ]] ; then
+        mysql -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "INSERT INTO collection  (name,public,theme,created,user,allow_changes,home_page_publish,home_page_text) VALUES('$(printf "%q" "${TODAY}")',1,'Broadcast Date',now(),3,1,1,'${TODAY}')" ;
+        DATECOLLECTION=$(mysql -BNr -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "SELECT ref FROM collection WHERE name = '$(printf "%q" "${TODAY}")' LIMIT 1 ;")
+    fi
+    psql -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -P pager=off -d protrack -c "SELECT CASE WHEN li_material_id is not null THEN trim(li_material_id) ELSE trim(fi_video_src) END FROM prog_log LEFT JOIN linkinfo ON li_vsn_id = prog_log.log_vsn_id LEFT JOIN filler ON fi_serial = prog_log.log_fi_id WHERE log_start_inst BETWEEN '2017-01-20' AND '2017-01-21' AND log_type !='SI' AND log_type != 'AZ'" | sort -u | while read id ; do
+        MEDIAREF=$(mysql -BNr -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "SELECT ref from resource WHERE field8 = '"${id}"' AND archive = '0' LIMIT 1")
+        ALREADYUPDATED=$(mysql -BNr -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "SELECT date_added FROM collection_resource WHERE collection = '${DATECOLLECTION}' AND resource = '${MEDIAREF}'")
+        if [[ -z "$ALREADYUPDATED" ]] && [[ ! -z "${MEDIAREF}" ]] ; then
+            mysql -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "INSERT INTO collection_resource (collection,resource) VALUES("${DATECOLLECTION}","${MEDIAREF}")" ;
+        fi
+    done
+}
+
+if [[ "${MAKETODAY}" = "Y" ]]; then
+    _catalog_todays_airings
+fi
 
 if [[ -n "${FROM_DATE_PT}" ]] ; then
     psql -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -P pager=off -d protrack -c "SELECT fi_video_src FROM filler AS f LEFT JOIN notes AS n ON n.no_parent = f.fi_serial WHERE f.up_date BETWEEN '${FROM_DATE_PT}' AND '3000-01-01' OR n.up_date BETWEEN '${FROM_DATE_PT}' AND '3000-01-01'" | while read MEDIAID ; do
