@@ -39,6 +39,13 @@ shift $(( ${OPTIND} - 1 ))
 TEMPXML=$(_maketemp)
 TEMPPBCORE=$(_maketemp)
 
+if [[ "${FROM_DATE_PT:0:1}" = "-" ]] ; then
+    FROM_DATE_PT=$(date -j -v"${FROM_DATE_PT}"d "+%Y-%m-%d %H:%M:%S")
+fi
+if [[ "${FROM_DATE_RS:0:1}" = "-" ]] ; then
+    FROM_DATE_RS=$(date -j -v"${FROM_DATE_RS}"d "+%Y-%m-%d %H:%M:%S")
+fi
+
 _query_protrack_push_to_resourcespace(){
     MEDIAID="${1}"
     echo -n "Working on ${MEDIAID}"
