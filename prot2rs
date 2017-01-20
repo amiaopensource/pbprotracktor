@@ -26,9 +26,10 @@ fi
 . "${CONF_FILE}" || { echo "Missing ${CONF_FILE}. Exiting." ; exit 1 ;};
 
 OPTIND=1
-while getopts ":f:" OPT ; do
+while getopts ":f:F:" OPT ; do
     case "${OPT}" in
-        f) FROM_DATE="${OPTARG}";;
+        f) FROM_DATE_PT="${OPTARG}";;
+        F) FROM_DATE_RS="${OPTARG}";;
         *) echo "bad option -${OPTARG}" ; _usage ;;
         :) echo "Option -${OPTARG} requires an argument" ; _writeerrorlog "makeyoutube" "The option selected required an argument and none was provided. The script had to exit." ; exit 1 ;;
     esac
@@ -73,8 +74,15 @@ _query_protrack_push_to_resourcespace(){
     fi
 }
 
-if [[ -n "${FROM_DATE}" ]] ; then
-    psql -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -P pager=off -d protrack -c "SELECT fi_video_src FROM filler AS f LEFT JOIN notes AS n ON n.no_parent = f.fi_serial WHERE f.up_date BETWEEN '${FROM_DATE}' AND '3000-01-01' OR n.up_date BETWEEN '${FROM_DATE}' AND '3000-01-01'" | while read MEDIAID ; do
+if [[ -n "${FROM_DATE_PT}" ]] ; then
+    psql -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -P pager=off -d protrack -c "SELECT fi_video_src FROM filler AS f LEFT JOIN notes AS n ON n.no_parent = f.fi_serial WHERE f.up_date BETWEEN '${FROM_DATE_PT}' AND '3000-01-01' OR n.up_date BETWEEN '${FROM_DATE_PT}' AND '3000-01-01'" | while read MEDIAID ; do
+        _query_protrack_push_to_resourcespace "${MEDIAID}"
+    done
+    psql -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -P pager=off -d protrack -c "SELECT li_material_id FROM linkinfo LEFT JOIN quad_tab ON linkinfo.li_vsn_id = quad_tab.vsn_serial WHERE linkinfo.up_date BETWEEN '${FROM_DATE_PT}' AND '3000-01-01'" | while read MEDIAID ; do
+        _query_protrack_push_to_resourcespace "${MEDIAID}"
+    done
+elif [[ -n "${FROM_DATE_RS}" ]] ; then
+    mysql -BNr -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "SELECT field8 FROM resource WHERE archive!='3' and creation_date BETWEEN '${FROM_DATE_RS}' AND '3000-01-01'" | while read MEDIAID ; do
         _query_protrack_push_to_resourcespace "${MEDIAID}"
     done
 else
