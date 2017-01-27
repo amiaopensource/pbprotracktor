@@ -96,12 +96,12 @@ _query_protrack_push_to_resourcespace(){
     fi
 }
 
-_catalog_todays_airings(){
-    TODAY=$(date "+%Y-%m-%d")
-    DATECOLLECTION=$(mysql -BNr -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "SELECT ref FROM collection WHERE name = '$(printf "%q" "${TODAY}")' LIMIT 1 ;")
+_catalog_airings(){
+    CATALOGDATE="${1}"
+    DATECOLLECTION=$(mysql -BNr -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "SELECT ref FROM collection WHERE name = '$(printf "%q" "${CATALOGDATE}")' LIMIT 1 ;")
     if [[ -z "${DATECOLLECTION}" ]] ; then
-        mysql -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "INSERT INTO collection  (name,public,theme,created,user,allow_changes,home_page_publish,home_page_text) VALUES('$(printf "%q" "${TODAY}")',1,'Broadcast Date',now(),3,1,1,'${TODAY}')" ;
-        DATECOLLECTION=$(mysql -BNr -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "SELECT ref FROM collection WHERE name = '$(printf "%q" "${TODAY}")' LIMIT 1 ;")
+        mysql -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "INSERT INTO collection  (name,public,theme,created,user,allow_changes,home_page_publish,home_page_text) VALUES('$(printf "%q" "${CATALOGDATE}")',1,'Broadcast Date',now(),3,1,1,'Broadcast ${CATALOGDATE}')" ;
+        DATECOLLECTION=$(mysql -BNr -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "SELECT ref FROM collection WHERE name = '$(printf "%q" "${CATALOGDATE}")' LIMIT 1 ;")
     fi
     psql -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -P pager=off -d protrack -c "SELECT CASE WHEN li_material_id is not null THEN trim(li_material_id) ELSE trim(fi_video_src) END FROM prog_log LEFT JOIN linkinfo ON li_vsn_id = prog_log.log_vsn_id LEFT JOIN filler ON fi_serial = prog_log.log_fi_id WHERE log_start_inst BETWEEN '2017-01-20' AND '2017-01-21' AND log_type !='SI' AND log_type != 'AZ'" | sort -u | while read id ; do
         MEDIAREF=$(mysql -BNr -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "SELECT ref from resource WHERE field8 = '"${id}"' AND archive = '0' LIMIT 1")
@@ -113,7 +113,8 @@ _catalog_todays_airings(){
 }
 
 if [[ "${MAKETODAY}" = "Y" ]]; then
-    _catalog_todays_airings
+    _catalog_airings "$(date "+%Y-%m-%d")"
+    _catalog_airings "$(date -j -v+1d "+%Y-%m-%d")"
 fi
 
 if [[ -n "${FROM_DATE_PT}" ]] ; then
