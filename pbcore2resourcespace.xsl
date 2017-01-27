@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:pbc="http://www.pbcore.org/PBCore/PBCoreNamespace.html" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.0" xsi:schemaLoaction="http://www.pbcore.org/PBCore/PBCoreNamespace.html" exclude-result-prefixes="pbc">
   <xsl:output encoding="UTF-8" method="xml" version="1.0" indent="yes" omit-xml-declaration="yes"/>
-  <xsl:template match="pbc:pbcoreDescriptionDocument">
+  <xsl:template match="//pbc:pbcoreDescriptionDocument">
     <resourceset>
       <resource>
         <xsl:attribute name="type">3</xsl:attribute>
