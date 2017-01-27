@@ -15,6 +15,18 @@ _usage(){
 exit
 }
 
+_search(){
+    query="user=${user}&function=do_search&param1=${1}&param2=&param3=resourceid&param4=0"
+    sign=$(printf '%s' "${private_key}${query}" | sha256deep)
+    curl -# "http://respace.cunytv.lan/api/?$query&sign=${sign}"
+}
+
+_add_resource_to_collection(){
+    query="user=${user}&function=add_resource_to_collection&param1=${1}&param2=${2}";
+    sign=$(printf '%s' "${private_key}${query}" | sha256deep)
+    curl -# "http://respace.cunytv.lan/api/?$query&sign=${sign}"
+}
+
 _maketemp(){
     mktemp -q "/tmp/$(basename "${0}").XXXXXX"
     if [ "${?}" -ne 0 ]; then
@@ -33,6 +45,9 @@ if [ ! -f "${CONF_FILE}" ] ; then
     echo "RESOURCESPACE_DB_NAME=" >> "${CONF_FILE}"
     echo "RESOURCESPACE_DB_USER=" >> "${CONF_FILE}"
     echo "RESOURCESPACE_DB_PW=" >> "${CONF_FILE}"
+    echo "# for resourcespace api"
+    echo "private_key=" >> "${CONF_FILE}"
+    echo "user=" >> "${CONF_FILE}"
     exit 1
 fi
 
@@ -103,11 +118,13 @@ _catalog_airings(){
         mysql -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "INSERT INTO collection  (name,public,theme,created,user,allow_changes,home_page_publish,home_page_text) VALUES('$(printf "%q" "${CATALOGDATE}")',1,'Broadcast Date',now(),3,1,1,'Broadcast ${CATALOGDATE}')" ;
         DATECOLLECTION=$(mysql -BNr -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "SELECT ref FROM collection WHERE name = '$(printf "%q" "${CATALOGDATE}")' LIMIT 1 ;")
     fi
-    psql -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -P pager=off -d protrack -c "SELECT CASE WHEN li_material_id is not null THEN trim(li_material_id) ELSE trim(fi_video_src) END FROM prog_log LEFT JOIN linkinfo ON li_vsn_id = prog_log.log_vsn_id LEFT JOIN filler ON fi_serial = prog_log.log_fi_id WHERE log_start_inst BETWEEN '2017-01-20' AND '2017-01-21' AND log_type !='SI' AND log_type != 'AZ'" | sort -u | while read id ; do
-        MEDIAREF=$(mysql -BNr -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "SELECT ref from resource WHERE field8 = '"${id}"' AND archive = '0' LIMIT 1")
-        ALREADYUPDATED=$(mysql -BNr -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "SELECT date_added FROM collection_resource WHERE collection = '${DATECOLLECTION}' AND resource = '${MEDIAREF}'")
-        if [[ -z "$ALREADYUPDATED" ]] && [[ ! -z "${MEDIAREF}" ]] ; then
-            mysql -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "INSERT INTO collection_resource (collection,resource) VALUES("${DATECOLLECTION}","${MEDIAREF}")" ;
+    psql -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -P pager=off -d protrack -c "SELECT CASE WHEN li_material_id is not null THEN trim(li_material_id) ELSE trim(fi_video_src) END FROM prog_log LEFT JOIN linkinfo ON li_vsn_id = prog_log.log_vsn_id LEFT JOIN filler ON fi_serial = prog_log.log_fi_id WHERE log_start_inst BETWEEN '${CATALOGDATE}' AND '$(date -j -f "%Y-%m-%d" -v+1d "${CATALOGDATE}" "+%Y-%m-%d")' AND log_type !='SI' AND log_type != 'AZ'" | sort -u | while read id ; do
+        MEDIAREF=$(_search "${id}" | jq -r '.[] | select (.field8=="'"${id}"'") | .ref')
+        if [[ ! -z "${MEDIAREF}" ]] ; then
+            echo "Adding ${id} with ref id of ${MEDIAREF} to ${CATALOGDATE} with ref id of ${DATECOLLECTION}"
+            _add_resource_to_collection "${MEDIAREF}" "${DATECOLLECTION}"
+        else
+            echo NOT uploading "$MEDIAREF"
         fi
     done
 }
