@@ -143,7 +143,9 @@ if [[ -n "${FROM_DATE_PT}" ]] ; then
     done
 elif [[ -n "${FROM_DATE_RS}" ]] ; then
     mysql -BNr -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "SELECT field8 FROM resource WHERE archive!='3' and creation_date BETWEEN '${FROM_DATE_RS}' AND '3000-01-01'" | while read MEDIAID ; do
-        _query_protrack_push_to_resourcespace "${MEDIAID}"
+        if [[ "${MEDIAID}" != "NULL" ]] && [[ "${MEDIAID}" != "" ]] ; then
+            _query_protrack_push_to_resourcespace "${MEDIAID}"
+        fi
     done
 else
 while [ "${*}" != "" ] ; do
