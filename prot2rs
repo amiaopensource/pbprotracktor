@@ -15,6 +15,22 @@ _usage(){
 exit
 }
 
+urlencode() {
+    # urlencode <string>
+    old_lc_collate=$LC_COLLATE
+    LC_COLLATE=C
+    TEXT=$(echo "$1" | sed 's|"|\\\\\\"|g')
+    local length="${#1}"
+    for (( i = 0; i < length; i++ )); do
+        local c="${TEXT:i:1}"
+        case $c in
+            [a-zA-Z0-9.~_-]) printf "$c" ;;
+            *) printf '%%%02X' "'$c" ;;
+        esac
+    done
+    LC_COLLATE=$old_lc_collate
+}
+
 _search(){
     query="user=${user}&function=do_search&param1=${1}&param2=&param3=resourceid&param4=0"
     sign=$(printf '%s' "${private_key}${query}" | sha256deep)
