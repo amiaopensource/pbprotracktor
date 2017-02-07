@@ -240,4 +240,5 @@ while [ "${*}" != "" ] ; do
     shift
     _query_protrack_push_to_resourcespace "${MEDIAID}"
 done
+echo
 fi
