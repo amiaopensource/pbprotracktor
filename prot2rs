@@ -31,6 +31,10 @@ urlencode() {
     LC_COLLATE=$old_lc_collate
 }
 
+_remove_empty_xml_nodes(){
+    xml ed -d '//*[not(./*) and (not(./text()) or normalize-space(./text())="")]'
+}
+
 _search(){
     query="user=${user}&function=do_search&param1=${1}&param2=&param3=resourceid&param4=0"
     sign=$(printf '%s' "${private_key}${query}" | sha256deep)
@@ -100,7 +104,7 @@ _query_protrack_push_to_resourcespace(){
     if [ "${RESULTS}" = 0 ] ; then
         echo ", skipping"
     else
-    "${SCRIPTDIR}/pbprotracktor" "${MEDIAID}" > "${TEMPXML}"
+    "${SCRIPTDIR}/pbprotracktor" "${MEDIAID}" | _remove_empty_xml_nodes 2> /dev/null > "${TEMPXML}"
     xml val "${TEMPXML}" >/dev/null
     if [ "${?}" != "0" ] ; then
         echo "pbprotracktor did not return a result for ${MEDIAID}, skipping."
