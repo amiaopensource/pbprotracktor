@@ -25,7 +25,7 @@ _usage(){
     echo
     echo "$(basename "${0}")"
     echo "Query ProTrack with pbprotracktor to gather PBCore data, transform it, and push it to ResourceSpace."
-    echo "Usage: $(basename ${0}) [ -d /path/to/deliver/to/ ] fileorpackage1 [ fileorpackage2 ...]"
+    echo "Usage: $(basename "${0}") [ -d /path/to/deliver/to/ ] fileorpackage1 [ fileorpackage2 ...]"
     echo "  -F DATE or Negative Integer (update ResourceSpace's records updated after the DATE provided (in YYYY-MM-DD form) or provide a negative number to update records updated within the past number of specified days)"
     echo "  -f DATE or Negative Integer (update ProTrack's records updated after the DATE provided (in YYYY-MM-DD form) or provide a negative number to update records updated within the past number of specified days)"
     echo "  -t ( sets up a featured collection based on today's date )"
