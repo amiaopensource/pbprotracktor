@@ -97,12 +97,11 @@ _updatefield(){
 _query_protrack_push_to_resourcespace(){
     MEDIAID="${1}"
     echo -n "Working on ${MEDIAID}"
-    RESULTS="$(_search "${MEDIAID}" 2>/dev/null)"
-    if [[ -z "${RESULTS}" ]] ; then
+    REF="$(_search "${MEDIAID}" 2>/dev/null | head -n 1)"
+    if [[ -z "${REF}" ]] ; then
         echo ", not found in resourcespace, skipping."
     else
-        REF=$(echo "${RESULTS}" | head -n 1)
-        echo ", found $(echo "${RESULTS}" | awk 'END{print NR}' ) record(s) in resourcespace (ref=$REF)"
+        echo ", found in resourcespace (ref=$REF)"
         TEMPXML=$(_maketemp)
         "${SCRIPTDIR}/pbprotracktor" "${MEDIAID}" | _remove_empty_xml_nodes 2> /dev/null > "${TEMPXML}"
         xml val "${TEMPXML}" >/dev/null
