@@ -94,43 +94,6 @@ _updatefield(){
     curl -# "http://respace.cunytv.lan/api/?$query&sign=${sign}"
 }
 
-if [ ! -f "${CONF_FILE}" ] ; then
-    echo "A configuration file is needed."
-    echo "Please edit ${CONF_FILE}"
-    echo "PROTRACK_DB_URL=" > "${CONF_FILE}"
-    echo "PROTRACK_DB_USER=" >> "${CONF_FILE}"
-    echo "RESOURCESPACE_DB_HOST=" >> "${CONF_FILE}"
-    echo "RESOURCESPACE_DB_NAME=" >> "${CONF_FILE}"
-    echo "RESOURCESPACE_DB_USER=" >> "${CONF_FILE}"
-    echo "RESOURCESPACE_DB_PW=" >> "${CONF_FILE}"
-    echo "# for resourcespace api"
-    echo "private_key=" >> "${CONF_FILE}"
-    echo "user=" >> "${CONF_FILE}"
-    exit 1
-fi
-
-. "${CONF_FILE}" || { echo "Missing ${CONF_FILE}. Exiting." ; exit 1 ;};
-
-OPTIND=1
-while getopts ":f:F:th" OPT ; do
-    case "${OPT}" in
-        f) FROM_DATE_PT="${OPTARG}";;
-        F) FROM_DATE_RS="${OPTARG}";;
-        t) MAKETODAY="Y";;
-        h) _usage;;
-        *) echo "bad option -${OPTARG}" ; _usage ;;
-        :) echo "Option -${OPTARG} requires an argument" ; _writeerrorlog "makeyoutube" "The option selected required an argument and none was provided. The script had to exit." ; exit 1 ;;
-    esac
-done
-shift $(( ${OPTIND} - 1 ))
-
-if [[ "${FROM_DATE_PT:0:1}" = "-" ]] ; then
-    FROM_DATE_PT=$(date -j -v"${FROM_DATE_PT}"d "+%Y-%m-%d %H:%M:%S")
-fi
-if [[ "${FROM_DATE_RS:0:1}" = "-" ]] ; then
-    FROM_DATE_RS=$(date -j -v"${FROM_DATE_RS}"d "+%Y-%m-%d %H:%M:%S")
-fi
-
 _query_protrack_push_to_resourcespace(){
     MEDIAID="${1}"
     echo -n "Working on ${MEDIAID}"
@@ -219,6 +182,43 @@ _catalog_airings(){
         fi
     done
 }
+
+if [ ! -f "${CONF_FILE}" ] ; then
+    echo "A configuration file is needed."
+    echo "Please edit ${CONF_FILE}"
+    echo "PROTRACK_DB_URL=" > "${CONF_FILE}"
+    echo "PROTRACK_DB_USER=" >> "${CONF_FILE}"
+    echo "RESOURCESPACE_DB_HOST=" >> "${CONF_FILE}"
+    echo "RESOURCESPACE_DB_NAME=" >> "${CONF_FILE}"
+    echo "RESOURCESPACE_DB_USER=" >> "${CONF_FILE}"
+    echo "RESOURCESPACE_DB_PW=" >> "${CONF_FILE}"
+    echo "# for resourcespace api"
+    echo "private_key=" >> "${CONF_FILE}"
+    echo "user=" >> "${CONF_FILE}"
+    exit 1
+fi
+
+. "${CONF_FILE}" || { echo "Missing ${CONF_FILE}. Exiting." ; exit 1 ;};
+
+OPTIND=1
+while getopts ":f:F:th" OPT ; do
+    case "${OPT}" in
+        f) FROM_DATE_PT="${OPTARG}";;
+        F) FROM_DATE_RS="${OPTARG}";;
+        t) MAKETODAY="Y";;
+        h) _usage;;
+        *) echo "bad option -${OPTARG}" ; _usage ;;
+        :) echo "Option -${OPTARG} requires an argument" ; _writeerrorlog "makeyoutube" "The option selected required an argument and none was provided. The script had to exit." ; exit 1 ;;
+    esac
+done
+shift $(( ${OPTIND} - 1 ))
+
+if [[ "${FROM_DATE_PT:0:1}" = "-" ]] ; then
+    FROM_DATE_PT=$(date -j -v"${FROM_DATE_PT}"d "+%Y-%m-%d %H:%M:%S")
+fi
+if [[ "${FROM_DATE_RS:0:1}" = "-" ]] ; then
+    FROM_DATE_RS=$(date -j -v"${FROM_DATE_RS}"d "+%Y-%m-%d %H:%M:%S")
+fi
 
 if [[ "${MAKETODAY}" = "Y" ]]; then
     _catalog_airings "$(date "+%Y-%m-%d")"
