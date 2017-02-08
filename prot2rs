@@ -166,16 +166,16 @@ _query_protrack_push_to_resourcespace(){
 
 _catalog_airings(){
     CATALOGDATE="${1}"
-    DATECOLLECTION=$(_search_public_collections "${CATALOGDATE}")
-    if [[ -z "${DATECOLLECTION}" ]] ; then
+    DATE_COLLECTION_ID=$(_search_public_collections "${CATALOGDATE}")
+    if [[ -z "${DATE_COLLECTION_ID}" ]] ; then
         mysql -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "INSERT INTO collection  (name,public,theme,created,user,allow_changes,home_page_publish,home_page_text) VALUES('$(printf "%q" "${CATALOGDATE}")',1,'Broadcast Date',now(),3,1,1,'Broadcast ${CATALOGDATE}')" ;
-        DATECOLLECTION=$(_search_public_collections "${CATALOGDATE}")
+        DATE_COLLECTION_ID=$(_search_public_collections "${CATALOGDATE}")
     fi
     psql -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -P pager=off -d protrack -c "SELECT CASE WHEN li_material_id is not null THEN trim(li_material_id) ELSE trim(fi_video_src) END FROM prog_log LEFT JOIN linkinfo ON li_vsn_id = prog_log.log_vsn_id LEFT JOIN filler ON fi_serial = prog_log.log_fi_id WHERE log_start_inst BETWEEN '${CATALOGDATE}' AND '$(date -j -f "%Y-%m-%d" -v+1d "${CATALOGDATE}" "+%Y-%m-%d")' AND log_type !='SI' AND log_type != 'AZ'" | sort -u | while read id ; do
         MEDIAREF=$(_search "${id}")
         if [[ ! -z "${MEDIAREF}" ]] ; then
-            echo "Adding ${id} with ref id of ${MEDIAREF} to ${CATALOGDATE} with ref id of ${DATECOLLECTION}"
-            _add_resource_to_collection "${MEDIAREF}" "${DATECOLLECTION}"
+            echo "Adding ${id} with ref id of ${MEDIAREF} to ${CATALOGDATE} with ref id of ${DATE_COLLECTION_ID}"
+            _add_resource_to_collection "${MEDIAREF}" "${DATE_COLLECTION_ID}"
         else
             echo NOT uploading "$MEDIAREF"
         fi
