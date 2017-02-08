@@ -2,6 +2,11 @@
 SCRIPTDIR="$(dirname "$0")"
 CONF_FILE="${SCRIPTDIR}/pbpro.conf"
 
+# pbcore 2 resourcespace mapping
+# fields prefixed with 'PBCORE_' will be mapped from PBCore to ResourceSpace as HTML table contents
+# thus for those fields, in resourcespace, the display templates should be set up like:
+# <div class="Description"><table><tr><th>Type</th><th>Description</th></tr>  [value]</table></div>
+# and the contents pushed in will be like <tr><td>Abstract</td><td>Some video</td></tr><tr><td>Transcript</td><td>Hey!</td></tr>
 PBCORE_ASSETTYPE_FIELD=77
 PBCORE_ASSETDATE_FIELD=82
 PBCORE_IDENTIFIER_FIELD=78
@@ -49,6 +54,7 @@ _remove_empty_xml_nodes(){
     xml ed -d '//*[not(./*) and (not(./text()) or normalize-space(./text())="")]'
 }
 
+# resourcespace API functions
 _search(){
     query="user=${user}&function=do_search&param1=${1}&param2=&param3=resourceid&param4=0"
     sign=$(printf '%s' "${private_key}${query}" | sha256deep)
