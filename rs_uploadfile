@@ -1,0 +1,43 @@
+#!/bin/bash
+SCRIPTDIR="$(dirname "$0")"
+CONF_FILE="${SCRIPTDIR}/pbpro.conf"
+. "${CONF_FILE}" || { echo "Missing ${CONF_FILE}. Exiting." ; exit 1 ;};
+
+mediaid=""
+
+OPTIND=1
+while getopts ":m:" OPT ; do
+    case "${OPT}" in
+        m) mediaid="${OPTARG}";;
+        *) echo "bad option -${OPTARG}" ; _usage ;;
+        :) echo "Option -${OPTARG} requires an argument" ; exit 1 ;;
+    esac
+done
+shift $(( ${OPTIND} - 1 ))
+
+_createresource(){
+    query="user=${user}&function=create_resource&param1=3&param2=0"
+    sign=$(printf '%s' "${private_key}${query}" | sha256deep)
+    curl -# "http://respace.cunytv.lan/api/?$query&sign=${sign}"
+}
+
+_uploadfile(){
+    resourceid=$(_createresource)
+    if [[ ! -n "${mediaid}" ]] ; then
+        mediaid=$(basename "${1%.*}")
+    fi
+    query="user=${user}&function=update_field&param1=${resourceid}&param2=8&param3=${mediaid}"
+    sign=$(printf '%s' "${private_key}${query}" | sha256deep)
+    curl -# "http://respace.cunytv.lan/api/?$query&sign=${sign}"
+
+    query="user=${user}&function=upload_file&param1=${resourceid}&param2=true&param3=false&param4=false&param5=${1}"
+    sign=$(printf '%s' "${private_key}${query}" | sha256deep)
+    curl -# "http://respace.cunytv.lan/api/?$query&sign=${sign}"
+}
+
+while [ "${*}" != "" ] ; do
+    # get context about the input
+    INPUT="${1}"
+    shift
+    _uploadfile "${INPUT}"
+done
