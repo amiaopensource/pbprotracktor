@@ -124,7 +124,6 @@ while getopts ":f:F:th" OPT ; do
 done
 shift $(( ${OPTIND} - 1 ))
 
-TEMPXML=$(_maketemp)
 TEMPPBCORE=$(_maketemp)
 
 if [[ "${FROM_DATE_PT:0:1}" = "-" ]] ; then
@@ -143,6 +142,7 @@ _query_protrack_push_to_resourcespace(){
     else
         REF=$(echo "${RESULTS}" | head -n 1)
         echo ", found $(echo "${RESULTS}" | awk 'END{print NR}' ) record(s) in resourcespace (ref=$REF)"
+        TEMPXML=$(_maketemp)
         "${SCRIPTDIR}/pbprotracktor" "${MEDIAID}" | _remove_empty_xml_nodes 2> /dev/null > "${TEMPXML}"
         xml val "${TEMPXML}" >/dev/null
         if [ "${?}" != "0" ] ; then
