@@ -50,6 +50,15 @@ urlencode() {
     LC_COLLATE=$old_lc_collate
 }
 
+_maketemp(){
+    mktemp -q "/tmp/$(basename "${0}").XXXXXX"
+    if [ "${?}" -ne 0 ]; then
+        echo "${0}: Can't create temp file, exiting..."
+        _writeerrorlog "_maketemp" "was unable to create the temp file, so the script had to exit."
+        exit 1
+    fi
+}
+
 _remove_empty_xml_nodes(){
     xml ed -d '//*[not(./*) and (not(./text()) or normalize-space(./text())="")]'
 }
@@ -83,15 +92,6 @@ _updatefield(){
     query="user=${user}&function=update_field&param1=${1}&param2=${2}&param3=$(urlencode "$3")"
     sign=$(printf '%s' "${private_key}${query}" | sha256deep)
     curl -# "http://respace.cunytv.lan/api/?$query&sign=${sign}"
-}
-
-_maketemp(){
-    mktemp -q "/tmp/$(basename "${0}").XXXXXX"
-    if [ "${?}" -ne 0 ]; then
-        echo "${0}: Can't create temp file, exiting..."
-        _writeerrorlog "_maketemp" "was unable to create the temp file, so the script had to exit."
-        exit 1
-    fi
 }
 
 if [ ! -f "${CONF_FILE}" ] ; then
