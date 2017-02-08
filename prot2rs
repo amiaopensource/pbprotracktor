@@ -124,8 +124,6 @@ while getopts ":f:F:th" OPT ; do
 done
 shift $(( ${OPTIND} - 1 ))
 
-TEMPPBCORE=$(_maketemp)
-
 if [[ "${FROM_DATE_PT:0:1}" = "-" ]] ; then
     FROM_DATE_PT=$(date -j -v"${FROM_DATE_PT}"d "+%Y-%m-%d %H:%M:%S")
 fi
