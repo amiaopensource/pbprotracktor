@@ -97,23 +97,27 @@ _updatefield(){
 _query_protrack_push_to_resourcespace(){
     MEDIAID="${1}"
     echo -n "Working on ${MEDIAID}"
+    # search rs for mediaid
     REF="$(_search "${MEDIAID}" 2>/dev/null | head -n 1)"
     if [[ -z "${REF}" ]] ; then
         echo ", not found in resourcespace, skipping."
     else
         echo ", found in resourcespace (ref=$REF)"
         TEMPXML=$(_maketemp)
+        # get PBCore XML for that mediaid
         "${SCRIPTDIR}/pbprotracktor" "${MEDIAID}" | _remove_empty_xml_nodes 2> /dev/null > "${TEMPXML}"
         xml val "${TEMPXML}" >/dev/null
         if [ "${?}" != "0" ] ; then
             echo "pbprotracktor did not return a result for ${MEDIAID}, skipping."
             return
         fi
+        # get series title from PBCore XML and create collection
         SERIESTITLE=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -t -v "//p:pbcoreDescriptionDocument[1]/p:pbcoreTitle[@titleType='Series'][1]" "${TEMPXML}")
         if [ -n "${SERIESTITLE}" ] ; then
             COLLECTION_ID=$(_search_public_collections "${SERIESTITLE}")
         fi
         if [[ -z "${COLLECTION_ID}" ]] ; then
+            # create a collection in rs, using mysql in order to make the collection public and give it a theme
             mysql -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "INSERT INTO collection  (name,public,theme,created,user,allow_changes) VALUES('$(printf "%q" "${SERIESTITLE}")',1,'Series',now(),3,1)" ;
             COLLECTION_ID=$(_search_public_collections "${SERIESTITLE}")
         fi
@@ -124,7 +128,7 @@ _query_protrack_push_to_resourcespace(){
         # upload asset date
         UPLOAD_ASSETDATE=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreAssetDate -o "<tr><td>" -v @dateType -o "</td><td>" -v . -o "</td></tr>" "${TEMPXML}")
         _updatefield "${REF}" "${PBCORE_ASSETDATE_FIELD}" "${UPLOAD_ASSETDATE}"
-        # upload in
+        # upload identifiers
         UPLOAD_IDENTIFIERS=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreIdentifier -o "<tr><td>" -v @source -o "</td><td>" -v . -o "</td></tr>" "${TEMPXML}")
         _updatefield "${REF}" "${PBCORE_IDENTIFIER_FIELD}" "${UPLOAD_IDENTIFIERS}"
         # upload title info
@@ -166,11 +170,14 @@ _query_protrack_push_to_resourcespace(){
 
 _catalog_airings(){
     CATALOGDATE="${1}"
+    # check is a collection already exists for a broadcast date
     DATE_COLLECTION_ID=$(_search_public_collections "${CATALOGDATE}")
     if [[ -z "${DATE_COLLECTION_ID}" ]] ; then
+        # create a collection in rs if needed
         mysql -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "INSERT INTO collection  (name,public,theme,created,user,allow_changes,home_page_publish,home_page_text) VALUES('$(printf "%q" "${CATALOGDATE}")',1,'Broadcast Date',now(),3,1,1,'Broadcast ${CATALOGDATE}')" ;
         DATE_COLLECTION_ID=$(_search_public_collections "${CATALOGDATE}")
     fi
+    # query protrack for records and add them all to a collection according to broadcast date
     psql -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -P pager=off -d protrack -c "SELECT CASE WHEN li_material_id is not null THEN trim(li_material_id) ELSE trim(fi_video_src) END FROM prog_log LEFT JOIN linkinfo ON li_vsn_id = prog_log.log_vsn_id LEFT JOIN filler ON fi_serial = prog_log.log_fi_id WHERE log_start_inst BETWEEN '${CATALOGDATE}' AND '$(date -j -f "%Y-%m-%d" -v+1d "${CATALOGDATE}" "+%Y-%m-%d")' AND log_type !='SI' AND log_type != 'AZ'" | sort -u | while read id ; do
         MEDIAREF=$(_search "${id}")
         if [[ ! -z "${MEDIAREF}" ]] ; then
@@ -212,6 +219,7 @@ while getopts ":f:F:th" OPT ; do
 done
 shift $(( ${OPTIND} - 1 ))
 
+# if from date is relative (like a negative number) then figure out what that date actually is
 if [[ "${FROM_DATE_PT:0:1}" = "-" ]] ; then
     FROM_DATE_PT=$(date -j -v"${FROM_DATE_PT}"d "+%Y-%m-%d %H:%M:%S")
 fi
@@ -225,19 +233,23 @@ if [[ "${MAKETODAY}" = "Y" ]]; then
 fi
 
 if [[ -n "${FROM_DATE_PT}" ]] ; then
+    # query protrack for filler and update data to rs
     psql -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -P pager=off -d protrack -c "SELECT fi_video_src FROM filler AS f LEFT JOIN notes AS n ON n.no_parent = f.fi_serial WHERE f.up_date BETWEEN '${FROM_DATE_PT}' AND '3000-01-01' OR n.up_date BETWEEN '${FROM_DATE_PT}' AND '3000-01-01'" | while read MEDIAID ; do
         _query_protrack_push_to_resourcespace "${MEDIAID}"
     done
+    # query protrack for programs and episodes and update data to rs
     psql -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -P pager=off -d protrack -c "SELECT li_material_id FROM linkinfo LEFT JOIN quad_tab ON linkinfo.li_vsn_id = quad_tab.vsn_serial WHERE linkinfo.up_date BETWEEN '${FROM_DATE_PT}' AND '3000-01-01'" | while read MEDIAID ; do
         _query_protrack_push_to_resourcespace "${MEDIAID}"
     done
 elif [[ -n "${FROM_DATE_RS}" ]] ; then
+    # query rs for resources and query protrack for that data
     mysql -BNr -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "SELECT field8 FROM resource WHERE archive!='3' and creation_date BETWEEN '${FROM_DATE_RS}' AND '3000-01-01'" | while read MEDIAID ; do
         if [[ "${MEDIAID}" != "NULL" ]] && [[ "${MEDIAID}" != "" ]] ; then
             _query_protrack_push_to_resourcespace "${MEDIAID}"
         fi
     done
 else
+    # loop over list of ids provided and upload data from protrack to rs
     while [ "${*}" != "" ] ; do
         MEDIAID="${1}"
         shift
