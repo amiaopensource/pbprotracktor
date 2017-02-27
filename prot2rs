@@ -67,31 +67,31 @@ _remove_empty_xml_nodes(){
 _search(){
     query="user=${user}&function=do_search&param1=${1}&param2=&param3=resourceid&param4=0"
     sign=$(printf '%s' "${private_key}${query}" | sha256deep)
-    curl -# "http://respace.cunytv.lan/api/?$query&sign=${sign}" | jq -r '.[] | select (.field8=="'"${1}"'") | .ref' 2>/dev/null
+    curl -# "${api_url}/?$query&sign=${sign}" | jq -r '.[] | select (.field8=="'"${1}"'") | .ref' 2>/dev/null
 }
 
 _search_public_collections(){
     query="user=${user}&function=search_public_collections&param1=&param2=ref&param3=ASC&param4=false&param5=false"
     sign=$(printf '%s' "${private_key}${query}" | sha256deep)
-    curl -# "http://respace.cunytv.lan/api/?$query&sign=${sign}" | jq -r '.[] | select (.name=="'"${1}"'") | .ref'
+    curl -# "${api_url}/?$query&sign=${sign}" | jq -r '.[] | select (.name=="'"${1}"'") | .ref'
 }
 
 _create_collection(){
     query="user=${user}&function=create_collection&param1=${1}"
     sign=$(printf '%s' "${private_key}${query}" | sha256deep)
-    curl -# "http://respace.cunytv.lan/api/?$query&sign=${sign}"
+    curl -# "${api_url}/?$query&sign=${sign}"
 }
 
 _add_resource_to_collection(){
     query="user=${user}&function=add_resource_to_collection&param1=${1}&param2=${2}";
     sign=$(printf '%s' "${private_key}${query}" | sha256deep)
-    curl -# "http://respace.cunytv.lan/api/?$query&sign=${sign}"
+    curl -# "${api_url}/?$query&sign=${sign}"
 }
 
 _updatefield(){
     query="user=${user}&function=update_field&param1=${1}&param2=${2}&param3=$(urlencode "$3")"
     sign=$(printf '%s' "${private_key}${query}" | sha256deep)
-    curl -# "http://respace.cunytv.lan/api/?$query&sign=${sign}"
+    curl -# "${api_url}/?$query&sign=${sign}"
 }
 
 _query_protrack_push_to_resourcespace(){
@@ -201,6 +201,7 @@ if [ ! -f "${CONF_FILE}" ] ; then
     echo "# for resourcespace api"
     echo "private_key=" >> "${CONF_FILE}"
     echo "user=" >> "${CONF_FILE}"
+    echo "api_url=" >> "${CONF_FILE}"
     exit 1
 fi
 

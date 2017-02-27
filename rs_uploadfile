@@ -18,7 +18,7 @@ shift $(( ${OPTIND} - 1 ))
 _createresource(){
     query="user=${user}&function=create_resource&param1=3&param2=0"
     sign=$(printf '%s' "${private_key}${query}" | sha256deep)
-    curl -# "http://respace.cunytv.lan/api/?$query&sign=${sign}"
+    curl -# "${api_url}/?$query&sign=${sign}"
 }
 
 _uploadfile(){
@@ -28,11 +28,11 @@ _uploadfile(){
     fi
     query="user=${user}&function=update_field&param1=${resourceid}&param2=8&param3=${mediaid}"
     sign=$(printf '%s' "${private_key}${query}" | sha256deep)
-    curl -# "http://respace.cunytv.lan/api/?$query&sign=${sign}"
+    curl -# "${api_url}/?$query&sign=${sign}"
 
     query="user=${user}&function=upload_file&param1=${resourceid}&param2=true&param3=false&param4=false&param5=${1}"
     sign=$(printf '%s' "${private_key}${query}" | sha256deep)
-    curl -# "http://respace.cunytv.lan/api/?$query&sign=${sign}"
+    curl -# "${api_url}/?$query&sign=${sign}"
 }
 
 while [ "${*}" != "" ] ; do
