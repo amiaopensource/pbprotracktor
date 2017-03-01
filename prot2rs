@@ -114,12 +114,12 @@ _query_protrack_push_to_resourcespace(){
         # get series title from PBCore XML and create collection
         SERIESTITLE=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -t -v "//p:pbcoreDescriptionDocument[1]/p:pbcoreTitle[@titleType='Series'][1]" "${TEMPXML}")
         if [ -n "${SERIESTITLE}" ] ; then
-            COLLECTION_ID=$(_search_public_collections "${SERIESTITLE}")
+            COLLECTION_ID=$(_search_public_collections "${SERIESTITLE}" | head -n 1)
         fi
         if [[ -z "${COLLECTION_ID}" ]] ; then
             # create a collection in rs, using mysql in order to make the collection public and give it a theme
             mysql -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "INSERT INTO collection  (name,public,theme,created,user,allow_changes) VALUES('$(printf "%q" "${SERIESTITLE}")',1,'Series',now(),3,1)" ;
-            COLLECTION_ID=$(_search_public_collections "${SERIESTITLE}")
+            COLLECTION_ID=$(_search_public_collections "${SERIESTITLE}" | head -n 1)
         fi
         _add_resource_to_collection "${REF}" "${COLLECTION_ID}"
         # upload asset type
