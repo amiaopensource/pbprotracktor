@@ -15,6 +15,10 @@ while getopts ":m:" OPT ; do
 done
 shift $(( ${OPTIND} - 1 ))
 
+_convert_to_full_path(){
+	echo $(cd $(dirname "${1}"); pwd)/$(basename "${1}")
+}
+
 _createresource(){
     query="user=${user}&function=create_resource&param1=3&param2=0"
     sign=$(printf '%s' "${private_key}${query}" | sha256deep)
@@ -39,5 +43,5 @@ while [ "${*}" != "" ] ; do
     # get context about the input
     INPUT="${1}"
     shift
-    _uploadfile "${INPUT}"
+    _uploadfile $(_convert_to_full_path "${INPUT}")
 done
