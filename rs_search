@@ -1,0 +1,16 @@
+#!/bin/bash
+SCRIPTDIR="$(dirname "$0")"
+CONF_FILE="${SCRIPTDIR}/pbpro.conf"
+. "${CONF_FILE}" || { echo "Missing ${CONF_FILE}. Exiting." ; exit 1 ;};
+
+_search_by_id(){
+    query="user=${user}&function=do_search&param1=${1}&param2=&param3=resourceid&param4=0"
+    sign=$(printf '%s' "${private_key}${query}" | sha256deep)
+    curl -# "${api_url}/?$query&sign=${sign}" 2>/dev/null| jq -r '.[] | select (.field8=="'"${1}"'") | .ref' 2>/dev/null
+}
+
+while [ "${*}" != "" ] ; do
+    ID="${1}"
+    shift
+    _search_by_id "${ID}"
+done
