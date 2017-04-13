@@ -123,7 +123,7 @@ _query_protrack_push_to_resourcespace(){
         fi
         _add_resource_to_collection "${REF}" "${COLLECTION_ID}"
         # upload asset type
-        UPLOAD_ASSETTYPE=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbccoreAssetType -o "<tr><td>" -v . -o "</td></tr>" "${TEMPXML}")
+        UPLOAD_ASSETTYPE=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreAssetType -o "<tr><td>" -v . -o "</td></tr>" "${TEMPXML}")
         _updatefield "${REF}" "${PBCORE_ASSETTYPE_FIELD}" "${UPLOAD_ASSETTYPE}"
         # upload asset date
         UPLOAD_ASSETDATE=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreAssetDate -o "<tr><td>" -v @dateType -o "</td><td>" -v . -o "</td></tr>" "${TEMPXML}")
