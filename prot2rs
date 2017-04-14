@@ -10,8 +10,8 @@ PBCORE_ASSETTYPE_FIELD=77
 PBCORE_ASSETDATE_FIELD=82
 PBCORE_IDENTIFIER_FIELD=78
 PBCORE_TITLE_FIELD=111
-PBCORE_TITLE_SERIES_FIELD=73
-PBCORE_TITLE_EPISODE_FIELD=76
+PBCORE_TITLE_PRIMARY_FIELD=73
+PBCORE_TITLE_SECONDARY_FIELD=76
 PBCORE_DESCRIPTION_FIELD=84
 PBCORE_COVERAGE_FIELD=93
 PBCORE_CREATOR_FIELD=86
@@ -135,10 +135,10 @@ _query_protrack_push_to_resourcespace(){
         _updatefield "${REF}" "${PBCORE_TITLE_FIELD}" "${UPLOAD_TITLES}"
         # upload title series
         UPLOAD_TITLE_SERIES=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreDescriptionDocument -v "p:pbcoreTitle[@titleType='Series']|p:pbcoreTitle[@titleType='Program']" "${TEMPXML}")
-        _updatefield "${REF}" "${PBCORE_TITLE_SERIES_FIELD}" "${UPLOAD_TITLE_SERIES}"
+        _updatefield "${REF}" "${PBCORE_TITLE_PRIMARY_FIELD}" "${UPLOAD_TITLE_SERIES}"
         # upload title episode
         UPLOAD_TITLE_EPISODE=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreDescriptionDocument -v "p:pbcoreTitle[@titleType='Episode']|p:pbcoreTitle[@titleType='Interstitial']" "${TEMPXML}")
-        _updatefield "${REF}" "${PBCORE_TITLE_EPISODE_FIELD}" "${UPLOAD_TITLE_EPISODE}"
+        _updatefield "${REF}" "${PBCORE_TITLE_SECONDARY_FIELD}" "${UPLOAD_TITLE_EPISODE}"
         # upload description info
         UPLOAD_DESCRIPTIONS=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreDescriptionDocument/p:pbcoreDescription -v . -o " (" -v @descriptionType -o ")" -n -n -b "${TEMPXML}")
         _updatefield "${REF}" "${PBCORE_DESCRIPTION_FIELD}" "${UPLOAD_DESCRIPTIONS}"
