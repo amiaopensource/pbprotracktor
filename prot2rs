@@ -88,7 +88,8 @@ _add_resource_to_collection(){
 }
 
 _updatefield(){
-    query="user=${user}&function=update_field&param1=${1}&param2=${2}&param3=$(urlencode "$3")"
+    uploadtext=$(echo "${3}" | sed "s|\"|'|g")
+    query="user=${user}&function=update_field&param1=${1}&param2=${2}&param3=$(urlencode "${uploadtext}")"
     sign=$(printf '%s' "${private_key}${query}" | sha256deep)
     curl -# "${api_url}/?$query&sign=${sign}"
 }
