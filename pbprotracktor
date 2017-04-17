@@ -67,7 +67,7 @@ psql -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack -c "\
                     CASE WHEN ser_title is not null THEN XMLELEMENT(NAME \"pbcoreTitle\",
                         XMLATTRIBUTES(
                             CASE WHEN ser_type = 'P' THEN 'Program' ELSE 'Series' END as \"titleType\",
-                            'unpreserved cased' as \"annotation\"
+                            'unpreserved case' as \"annotation\"
                         ),
                         initcap(trim(ser_title)) )
                     END,
