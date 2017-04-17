@@ -69,7 +69,7 @@ psql -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack -c "\
                             CASE WHEN ser_type = 'P' THEN 'Program' ELSE 'Series' END as \"titleType\",
                             'unpreserved case' as \"annotation\"
                         ),
-                        initcap(trim(ser_title)) )
+                        replace(initcap(trim(ser_title)),chr(39)||'S', chr(39)||'s') )
                     END,
                     (SELECT
                         XMLELEMENT(NAME \"pbcoreTitle\",
