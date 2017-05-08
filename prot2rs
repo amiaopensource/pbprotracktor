@@ -90,7 +90,7 @@ _add_resource_to_collection(){
 }
 
 _updatefield(){
-    uploadtext=$(echo "${3}" | php -R 'echo html_entity_decode($argn);' | sed "s|\"|'|g")
+    uploadtext=$(echo "${3}" | sed "s|\"|'|g")
     query="user=${user}&function=update_field&param1=${1}&param2=${2}&param3=$(urlencode "${uploadtext}")"
     sign=$(printf '%s' "${private_key}${query}" | sha256deep)
     curl -# "${api_url}/?$query&sign=${sign}"
