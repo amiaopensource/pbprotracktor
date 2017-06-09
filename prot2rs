@@ -122,7 +122,7 @@ _query_protrack_push_to_resourcespace(){
         fi
         if [[ -z "${COLLECTION_ID}" ]] ; then
             # create a collection in rs, using mysql in order to make the collection public and give it a theme
-            mysql -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "INSERT INTO collection  (name,public,theme,created,user,allow_changes) VALUES('$(printf "%q" "${SERIESTITLE}")',1,'Series',now(),3,1)" ;
+            mysql -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "INSERT INTO collection (name,public,theme,created,user,allow_changes) VALUES('$(printf "%q" "${SERIESTITLE}")',1,'Series',now(),3,1)" ;
             COLLECTION_ID=$(_search_public_collections "${SERIESTITLE}" | head -n 1)
         fi
         if [[ -n "${COLLECTION_ID}" ]] ; then
