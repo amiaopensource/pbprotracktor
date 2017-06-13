@@ -22,6 +22,53 @@ if [[ -z "$PROTRACK_DB_URL" || -z "$PROTRACK_DB_USER" ]] ; then
     exit 1
 fi
 
+    INSTANTIATION_CALL="(SELECT XMLAGG (
+                        XMLELEMENT(NAME \"pbcoreInstantiation\",
+                            XMLELEMENT(NAME \"instantiationIdentifier\",
+                                XMLATTRIBUTES('li_serial' as \"source\"),
+                                li_serial),
+                            XMLELEMENT(NAME \"instantiationIdentifier\",
+                                XMLATTRIBUTES('Media ID' as \"source\"),
+                                trim(li_material_id)),
+                            CASE WHEN li_cart_id is not null THEN
+                            XMLELEMENT(NAME \"instantiationIdentifier\",
+                                XMLATTRIBUTES('Cart ID' as \"source\"),
+                                trim(li_cart_id))
+                            END,
+                            XMLELEMENT(NAME \"instantiationDate\",
+                                XMLATTRIBUTES('availableStart' as \"dateType\"),
+                                li_start_date),
+                            XMLELEMENT(NAME \"instantiationDate\",
+                                XMLATTRIBUTES(
+                                    'availableEnd' as \"dateType\",
+                                    ':-/' as \"annotation\"
+                                ),
+                                li_end_date),
+                            XMLELEMENT(NAME \"instantiationLocation\"),
+                            XMLELEMENT(NAME \"instantiationTimeStart\",li_in_char),
+                            XMLELEMENT(NAME \"instantiationDuration\",li_length_char),
+                            CASE WHEN li_use_for_air = 0 THEN
+                                XMLELEMENT(NAME \"instantiationAnnotation\",
+                                    XMLATTRIBUTES('accessRestriction' as \"annotationType\"),
+                                    'Restricted')
+                            END,
+                            CASE WHEN li_cart_id is not null THEN
+                                XMLELEMENT(NAME \"instantiationAnnotation\",
+                                    XMLATTRIBUTES('accessRestriction' as \"annotationType\"),
+                                    'Restricted')
+                            END,
+                            (SELECT
+                                CASE WHEN string_agg(no_text,' ') is not null THEN
+                                    XMLELEMENT(NAME \"instantiationAnnotation\",
+                                        XMLATTRIBUTES('Technical Notes' as \"annotationType\"),
+                                        trim(string_agg(no_text,' ' ORDER BY no_sequence ASC)))
+                                END
+                            FROM notes
+                            WHERE notes.no_parent = li_serial AND notes.no_location = 'tapelink'
+                            )
+                        ) ORDER BY li_material_id ASC)
+                    FROM linkinfo WHERE linkinfo.li_vsn_id = quad_tab.vsn_serial
+                    )"
 _getpbcore(){
 psql -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack -c "\
     SELECT
@@ -132,53 +179,7 @@ psql -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack -c "\
                             ),
                             initcap(trim(vsn_descript)) )
                     END,
-                    (SELECT XMLAGG (
-                        XMLELEMENT(NAME \"pbcoreInstantiation\",
-                            XMLELEMENT(NAME \"instantiationIdentifier\",
-                                XMLATTRIBUTES('li_serial' as \"source\"),
-                                li_serial),
-                            XMLELEMENT(NAME \"instantiationIdentifier\",
-                                XMLATTRIBUTES('Media ID' as \"source\"),
-                                trim(li_material_id)),
-                            CASE WHEN li_cart_id is not null THEN
-                            XMLELEMENT(NAME \"instantiationIdentifier\",
-                                XMLATTRIBUTES('Cart ID' as \"source\"),
-                                trim(li_cart_id))
-                            END,
-                            XMLELEMENT(NAME \"instantiationDate\",
-                                XMLATTRIBUTES('availableStart' as \"dateType\"),
-                                li_start_date),
-                            XMLELEMENT(NAME \"instantiationDate\",
-                                XMLATTRIBUTES(
-                                    'availableEnd' as \"dateType\",
-                                    ':-/' as \"annotation\"
-                                ),
-                                li_end_date),
-                            XMLELEMENT(NAME \"instantiationLocation\"),
-                            XMLELEMENT(NAME \"instantiationTimeStart\",li_in_char),
-                            XMLELEMENT(NAME \"instantiationDuration\",li_length_char),
-                            CASE WHEN li_use_for_air = 0 THEN
-                                XMLELEMENT(NAME \"instantiationAnnotation\",
-                                    XMLATTRIBUTES('accessRestriction' as \"annotationType\"),
-                                    'Restricted')
-                            END,
-                            CASE WHEN li_cart_id is not null THEN
-                                XMLELEMENT(NAME \"instantiationAnnotation\",
-                                    XMLATTRIBUTES('accessRestriction' as \"annotationType\"),
-                                    'Restricted')
-                            END,
-                            (SELECT
-                                CASE WHEN string_agg(no_text,' ') is not null THEN
-                                    XMLELEMENT(NAME \"instantiationAnnotation\",
-                                        XMLATTRIBUTES('Technical Notes' as \"annotationType\"),
-                                        trim(string_agg(no_text,' ' ORDER BY no_sequence ASC)))
-                                END
-                            FROM notes
-                            WHERE notes.no_parent = li_serial AND notes.no_location = 'tapelink'
-                            )
-                        ) ORDER BY li_material_id ASC)
-                    FROM linkinfo WHERE linkinfo.li_vsn_id = quad_tab.vsn_serial
-                    )
+                    ${INSTANTIATION_CALL}
                 )
             ) as pbcore_episodes_xml
         FROM quad_tab
