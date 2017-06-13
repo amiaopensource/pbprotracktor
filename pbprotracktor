@@ -43,6 +43,16 @@ psql -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack -c "\
                         NAME \"pbcoreAssetType\",
                         CASE WHEN ser_type = 'P' THEN 'Program' ELSE 'Episode' END
                     ),
+                    (SELECT
+                        XMLELEMENT(NAME \"pbcoreAssetDate\",
+                            XMLATTRIBUTES(
+                                'broadcast' as \"dateType\",
+                                'according to ProTrack' as \"annotation\"
+                                ),
+                            MIN(air.ai_air_strt_inst))
+                    FROM air
+                    WHERE ai_vsn_id = vsn_serial
+                    ),
                     XMLELEMENT(
                         NAME \"pbcoreIdentifier\",
                         XMLATTRIBUTES('NOLA Code' as \"source\"),
