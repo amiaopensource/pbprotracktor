@@ -22,6 +22,7 @@ if [[ -z "$PROTRACK_DB_URL" || -z "$PROTRACK_DB_USER" ]] ; then
     exit 1
 fi
 
+_getpbcore(){
 psql -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack -c "\
     SELECT
         CASE WHEN pbcore_episodes_xml is not null OR pbcore_filler_xml is not null THEN
@@ -253,3 +254,6 @@ psql -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack -c "\
         WHERE fi_video_src IN ( $(printf "'%s'," "$@" | sed 's/,$//') )
     ) AS pbcore_filler_result
 "
+}
+
+_getpbcore "$@"
