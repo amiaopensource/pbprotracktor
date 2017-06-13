@@ -192,6 +192,16 @@ psql -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack -c "\
                     XMLELEMENT(NAME \"pbcoreAssetDate\",
                         XMLATTRIBUTES('catalogued' as \"dateType\"),
                         fi_date ),
+                    (SELECT
+                        XMLELEMENT(NAME \"pbcoreAssetDate\",
+                            XMLATTRIBUTES(
+                                'broadcast' as \"dateType\",
+                                'according to ProTrack' as \"annotation\"
+                                ),
+                            MIN(prog_log.log_start_inst))
+                    FROM prog_log
+                    WHERE log_fi_id = fi_serial
+                    ),
                     XMLELEMENT(NAME \"pbcoreIdentifier\",
                         XMLATTRIBUTES('fi_serial' as \"source\"),
                         fi_serial ),
