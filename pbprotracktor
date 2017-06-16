@@ -29,19 +29,17 @@ _usage(){
     echo "Dependencies: xmlstarlet (xml), psql"
     echo "Usage: $(basename "${0}") [ -l ] [ -r ] [ -c ] fileorpackage1 [ fileorpackage2 ...]"
     echo "  -a (return all instantiations per asset, rather than only the called one)"
-    echo "  -c (csv output)"
     echo "  -h ( display this help )"
     echo
     exit
 }
 
 OPTIND=1
-while getopts ":cah" OPT ; do
+while getopts ":ah" OPT ; do
     case "${OPT}" in
         a) ALL_INST="Y" ;;
         h) _usage ;;
         *) echo "bad option -${OPTARG}" ; _usage ;;
-        :) echo "Option -${OPTARG} requires an argument" ; _writeerrorlog "makebroadcast" "The option selected required an argument and none was provided. The script had to exit." ; exit 1 ;;
     esac
 done
 shift $(( ${OPTIND} - 1 ))
