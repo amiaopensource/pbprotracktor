@@ -1,4 +1,5 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
 SCRIPTDIR="$(dirname "$0")"
 CONF_FILE="${SCRIPTDIR}/pbpro.conf"
 . "${CONF_FILE}" || { echo "Missing ${CONF_FILE}. Exiting." ; exit 1 ;};
@@ -9,8 +10,8 @@ OPTIND=1
 while getopts ":m:" OPT ; do
     case "${OPT}" in
         m) mediaid="${OPTARG}";;
-        *) echo "bad option -${OPTARG}" ; _usage ;;
         :) echo "Option -${OPTARG} requires an argument" ; exit 1 ;;
+        *) echo "bad option -${OPTARG}" ; exit 1 ;;
     esac
 done
 shift $(( ${OPTIND} - 1 ))
