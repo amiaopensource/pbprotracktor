@@ -1,4 +1,5 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
 SCRIPTDIR="$(dirname "$0")"
 CONF_FILE="${SCRIPTDIR}/pbpro.conf"
 
@@ -6,6 +7,7 @@ CONF_FILE="${SCRIPTDIR}/pbpro.conf"
 # fields below prefixed with 'PBCORE_' will be mapped from PBCore to ResourceSpace
 # it is recommended to set up a display template for these fields in resourcespace like this:
 # <div><h3>[title]</h3><p>[value]</p></div><div class="clearerleft"> </div>
+
 PBCORE_ASSETTYPE_FIELD=77
 PBCORE_ASSETDATE_FIELD=82
 PBCORE_IDENTIFIER_FIELD=78
@@ -223,8 +225,8 @@ while getopts ":f:F:th" OPT ; do
         F) FROM_DATE_RS="${OPTARG}";;
         t) MAKETODAY="Y";;
         h) _usage;;
-        *) echo "bad option -${OPTARG}" ; _usage ;;
         :) echo "Option -${OPTARG} requires an argument" ; _writeerrorlog "makeyoutube" "The option selected required an argument and none was provided. The script had to exit." ; exit 1 ;;
+        *) echo "bad option -${OPTARG}" ; _usage ;;
     esac
 done
 shift $(( ${OPTIND} - 1 ))
