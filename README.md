@@ -43,4 +43,4 @@ pbprotrackor SHOW1324 SHOW1325 SOMEOTHERSHOW123 U812 | xml fo
 
 # License
 
-See [License](License.txt).
+`pbprotrackor` is licensed under a [MIT](License.txt) License.
