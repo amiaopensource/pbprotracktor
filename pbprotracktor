@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 SCRIPTDIR=$(dirname $(which "${0}"))
 CONF_FILE="${SCRIPTDIR}/pbpro.conf"
@@ -6,45 +6,50 @@ CONF_FILE="${SCRIPTDIR}/pbpro.conf"
 if [ ! -f "${CONF_FILE}" ] ; then
     echo "A configuration file is needed."
     echo "Please edit ${CONF_FILE}"
-    echo "PROTRACK_DB_URL=" > "${CONF_FILE}"
-    echo "PROTRACK_DB_USER=" >> "${CONF_FILE}"
-    echo "RESOURCESPACE_DB_HOST=" >> "${CONF_FILE}"
-    echo "RESOURCESPACE_DB_NAME=" >> "${CONF_FILE}"
-    echo "RESOURCESPACE_DB_USER=" >> "${CONF_FILE}"
-    echo "RESOURCESPACE_DB_PW=" >> "${CONF_FILE}"
+    {
+        echo "PROTRACK_DB_URL="
+        echo "PROTRACK_DB_USER="
+        echo "RESOURCESPACE_DB_HOST="
+        echo "RESOURCESPACE_DB_NAME="
+        echo "RESOURCESPACE_DB_USER="
+        echo "RESOURCESPACE_DB_PW="
+    } > "${CONF_FILE}"
     exit 1
 fi
 
 . "${CONF_FILE}" || { echo "Missing ${CONF_FILE}. Exiting." ; exit 1 ;};
 
-if [[ -z "$PROTRACK_DB_URL" || -z "$PROTRACK_DB_USER" ]] ; then
+if [[ -z "${PROTRACK_DB_URL}" || -z "${PROTRACK_DB_USER}" ]] ; then
     >&2 echo "Please set info for the postgres connection in ${CONF_FILE}."
     exit 1
 fi
 
 _usage(){
-    echo
-    echo "$(basename "${0}")"
-    echo "This utility will format data from ProTrack into PBCore by the instantiation media id"
-    echo "Dependencies: xmlstarlet (xml), psql"
-    echo "Usage: $(basename "${0}") [ -l ] [ -r ] [ -c ] fileorpackage1 [ fileorpackage2 ...]"
-    echo "  -a (return all instantiations per asset, rather than only the called one)"
-    echo "  -h ( display this help )"
-    echo
-    exit
+    cat <<EOF
+$(basename "${0}")
+
+This utility will format data from ProTrack into PBCore by the instantiation
+media id.
+
+Dependencies: xmlstarlet (xml), psql
+
+Usage: $(basename "${0}") [ -l ] [ -r ] [ -c ] fileorpackage1 [ fileorpackage2 ...]
+  -a  return all instantiations per asset, rather than only the called one
+  -h  display this help
+EOF
 }
 
 OPTIND=1
 while getopts ":ah" OPT ; do
     case "${OPT}" in
         a) ALL_INST="Y" ;;
-        h) _usage ;;
-        *) echo "bad option -${OPTARG}" ; _usage ;;
+        h) _usage ; exit 0 ;;
+        *) echo "bad option -${OPTARG}" ; _usage ; exit 1 ;;
     esac
 done
 shift $(( ${OPTIND} - 1 ))
 
-if [[ "${ALL_INST}" == "Y" ]] ; then
+if [[ "${ALL_INST}" = "Y" ]] ; then
     INSTANTIATION_CALL="(SELECT XMLAGG (
                         XMLELEMENT(NAME \"pbcoreInstantiation\",
                             XMLELEMENT(NAME \"instantiationIdentifier\",
