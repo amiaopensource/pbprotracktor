@@ -1,6 +1,6 @@
 # What is this?
 
-`pbprotrackor` is a bash script which queries the postgres database of Protrack to output PBCore. Use at your own risk. Some other scripts may be added here to facilitate finangling that PBCore or sending it to other systems. 
+`pbprotrackor` is a bash script which queries the postgres database of ProTrack to output PBCore. Use at your own risk. Some other scripts may be added here to facilitate finagling that PBCore or sending it to other systems. 
 
 # How valid is the PBCore?
 
@@ -15,6 +15,11 @@ Mostly valid.
 ```
 brew tap amiaopensource/amiaos
 brew install pbprotrackor
+```
+
+Alternatively, you can run the following command:
+```
+brew install amiaopensource/amiaos/pbprotrackor
 ```
 
 # How to use?
