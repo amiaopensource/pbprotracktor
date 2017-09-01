@@ -361,6 +361,6 @@ if [[ "${CSV}" = "Y" ]] ; then
    -n
    
 else
-   _getpbcore "$@"
+   _getpbcore "$@" | xml fo
 fi
 	
