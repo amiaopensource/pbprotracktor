@@ -17,7 +17,7 @@ if [ ! -f "${CONF_FILE}" ] ; then
     exit 1
 fi
 
-. "${CONF_FILE}" || { echo "Missing ${CONF_FILE}. Exiting." ; exit 1 ;};
+. "${CONF_FILE}" || { echo "Missing ${CONF_FILE}. Exiting." ; exit 1 ; }
 
 if [[ -z "${PROTRACK_DB_URL}" || -z "${PROTRACK_DB_USER}" ]] ; then
     >&2 echo "Please set info for the postgres connection in ${CONF_FILE}."
@@ -33,7 +33,7 @@ media id.
 
 Dependencies: xmlstarlet (xml), psql
 
-Usage: $(basename "${0}") [ -l ] [ -r ] [ -c ] fileorpackage1 [ fileorpackage2 ...]
+Usage: $(basename "${0}") [ -a ] [ -c ] fileorpackage1 [ fileorpackage2 ...] | -h
   -a  return all instantiations per asset, rather than only the called one
   -c  transform xml output into csv
   -h  display this help
