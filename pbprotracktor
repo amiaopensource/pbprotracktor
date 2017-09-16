@@ -35,7 +35,7 @@ Dependencies: xmlstarlet (xml), psql
 
 Usage: $(basename "${0}") [ -a ] [ -c ] fileorpackage1 [ fileorpackage2 ...] | -h
   -a  return all instantiations per asset, rather than only the called one
-  -c  transform xml output into csv
+  -c  transform XML output into CSV
   -h  display this help
 EOF
 }
@@ -348,19 +348,17 @@ psql -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack -c "\
 }
 
 if [[ "${CSV}" = "Y" ]] ; then
-   _getpbcore "$@" |
-   xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" \
-   -t -o "Series Name,Media ID,Episode Number,Episode Title,First Air Date,Episode Description" \
-   -n -m "/p:pbcoreCollection/p:pbcoreDescriptionDocument" \
-   -o "\"" -v "p:pbcoreTitle[@titleType='Series']|p:pbcoreTitle[@titleType='Program']" -o "\"," \
-   -v "p:pbcoreInstantiation/p:instantiationIdentifier[@source='Media ID']" -o "," \
-   -v "substring(p:pbcoreIdentifier[@source='NOLA Code'],7)" -o "," \
-   -o "\"" -v "p:pbcoreTitle[@titleType='Episode']" -o "\"," \
-   -o "\"" -v "p:pbcoreAssetDate[1]" -o "\"," \
-   -o "\"" -v "p:pbcoreDescription[@descriptionType='PSIP']" -o "\"," \
-   -n
-   
+    _getpbcore "$@" |
+    xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" \
+    -t -o "Series Name,Media ID,Episode Number,Episode Title,First Air Date,Episode Description" \
+    -n -m "/p:pbcoreCollection/p:pbcoreDescriptionDocument" \
+    -o "\"" -v "p:pbcoreTitle[@titleType='Series']|p:pbcoreTitle[@titleType='Program']" -o "\"," \
+    -v "p:pbcoreInstantiation/p:instantiationIdentifier[@source='Media ID']" -o "," \
+    -v "substring(p:pbcoreIdentifier[@source='NOLA Code'],7)" -o "," \
+    -o "\"" -v "p:pbcoreTitle[@titleType='Episode']" -o "\"," \
+    -o "\"" -v "p:pbcoreAssetDate[1]" -o "\"," \
+    -o "\"" -v "p:pbcoreDescription[@descriptionType='PSIP']" -o "\"," \
+    -n
 else
-   _getpbcore "$@" | xml fo
+    _getpbcore "$@" | xml fo
 fi
-	
