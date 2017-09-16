@@ -362,4 +362,3 @@ if [[ "${CSV}" = "Y" ]] ; then
 else
     _getpbcore "$@" | xml fo
 fi
-
