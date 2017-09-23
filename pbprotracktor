@@ -41,7 +41,7 @@ media ID.
 
 Dependencies: xmlstarlet (xml), psql
 
-Usage: $(basename "${0}") [-a] [-c] {file_or_package} | -h
+Usage: ${SCRIPTNAME} [-a] [-c] {file_or_package} | -h
   -a  return all instantiations per asset, rather than only the called one
   -c  transform XML output into CSV
   -h  display this help
