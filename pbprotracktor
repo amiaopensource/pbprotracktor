@@ -59,6 +59,11 @@ while getopts ":ach" OPT ; do
 done
 shift $(( ${OPTIND} - 1 ))
 
+if [[ "${#}" = 0 ]] ; then
+  _usage
+  exit 1
+fi
+
 if [[ "${ALL_INST}" = "Y" ]] ; then
     INSTANTIATION_CALL="(SELECT XMLAGG (
                         XMLELEMENT(NAME \"pbcoreInstantiation\",
