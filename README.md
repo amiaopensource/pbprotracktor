@@ -24,7 +24,7 @@ brew install amiaopensource/amiaos/pbprotrackor
 
 ## How to use?
 
-To pull a PBCore XML from the database where the media attachment's id is `SHOW1234`, try:
+To pull a PBCore XML from the database where the media attachment's ID is `SHOW1234`, try:
 
 ```
 pbprotrackor SHOW1324
@@ -36,11 +36,11 @@ or gather many PBCore records at once via:
 pbprotrackor SHOW1324 SHOW1325 SOMEOTHERSHOW123 U812
 ```
 
-During the first run, `pbprotrackor` will prompt for a configuration file to be written which requires the ip address and a user name for the server which hosts ProTrack.
+During the first run, `pbprotrackor` will prompt for a configuration file to be written which requires the IP address and a user name for the server which hosts ProTrack.
 
 The output will either XML (no option) or CVS (option `-c`). The option `-a` returns all instantiations per asset, rather than only the called one.
 
-There are no error codes yet. Also presently the query is only started via the media attachment id.
+There are no error codes yet. Also presently the query is only started via the media attachment ID.
 
 # License
 
