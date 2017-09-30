@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 
 SCRIPTDIR=$(dirname $(which "${0}"))
+SCRIPTNAME=$(basename "${0}")
+
+if [[ "${SCRIPTDIR}" = "/usr/local/bin" ]] ; then
+    VERSION=$(TMP=$(brew info ${SCRIPTNAME} | grep -Eo "/${SCRIPTNAME}/.* \(") ; echo ${TMP:${#SCRIPTNAME}+2:(${#TMP}-${#SCRIPTNAME}-4)})
+else
+    VERSION=""
+fi
+
 CONF_FILE="${SCRIPTDIR}/pbpro.conf"
 
 if [ ! -f "${CONF_FILE}" ] ; then
@@ -26,14 +34,14 @@ fi
 
 _usage(){
     cat <<EOF
-$(basename "${0}")
+${SCRIPTNAME} ${VERSION}
 
 This utility will format data from ProTrack into PBCore by the instantiation
-media id.
+media ID.
 
 Dependencies: xmlstarlet (xml), psql
 
-Usage: $(basename "${0}") [ -a ] [ -c ] fileorpackage1 [ fileorpackage2 ...] | -h
+Usage: ${SCRIPTNAME} [-a] [-c] {file_or_package} | -h
   -a  return all instantiations per asset, rather than only the called one
   -c  transform XML output into CSV
   -h  display this help
@@ -50,6 +58,11 @@ while getopts ":ach" OPT ; do
     esac
 done
 shift $(( ${OPTIND} - 1 ))
+
+if [[ "${#}" = 0 ]] ; then
+  _usage
+  exit 1
+fi
 
 if [[ "${ALL_INST}" = "Y" ]] ; then
     INSTANTIATION_CALL="(SELECT XMLAGG (
