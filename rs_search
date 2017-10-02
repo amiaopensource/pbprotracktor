@@ -1,7 +1,8 @@
-#!/bin/bash
-SCRIPTDIR="$(dirname "$0")"
+#!/usr/bin/env bash
+
+SCRIPTDIR=$(dirname "${0}")
 CONF_FILE="${SCRIPTDIR}/pbpro.conf"
-. "${CONF_FILE}" || { echo "Missing ${CONF_FILE}. Exiting." ; exit 1 ;};
+. "${CONF_FILE}" || { echo "Missing ${CONF_FILE}. Exiting." ; exit 1 ; }
 
 _search_by_id(){
     query="user=${user}&function=do_search&param1=${1}&param2=&param3=resourceid&param4=0"
