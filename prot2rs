@@ -84,14 +84,6 @@ _search_public_collections(){
     curl -# "${api_url}/?$query&sign=${sign}" | jq -r '.[] | select (.name=="'"${1}"'") | .ref'
 }
 
-_create_collection(){
-    uploadtext=$(echo "$1" | php -R 'echo html_entity_decode($argn);' | sed "s|\"|'|g")
-    query="user=${user}&function=create_collection&param1=${uploadtext}"
-    sign=$(printf '%s' "${private_key}${query}" | sha256deep)
-    curl -# "${api_url}/?$query&sign=${sign}"
-    echo "curl -# ${api_url}/?$query&sign=${sign}"
-}
-
 _add_resource_to_collection(){
     query="user=${user}&function=add_resource_to_collection&param1=${1}&param2=${2}";
     sign=$(printf '%s' "${private_key}${query}" | sha256deep)
