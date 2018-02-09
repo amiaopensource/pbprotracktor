@@ -115,6 +115,7 @@ _query_protrack_push_to_resourcespace(){
             return
         fi
         # get series title from PBCore XML and create collection
+        unset SERIESTITLE
         SERIESTITLE=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -t -v "//p:pbcoreDescriptionDocument[1]/p:pbcoreTitle[@titleType='Series'][1]" "${TEMPXML}" | php -R 'echo html_entity_decode($argn);')
         unset COLLECTION_ID
         if [ -n "${SERIESTITLE}" ] ; then
