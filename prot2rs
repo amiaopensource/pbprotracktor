@@ -190,7 +190,7 @@ _catalog_airings(){
     DATE_COLLECTION_ID=$(_search_public_collections "${CATALOG_NAME}")
     if [[ -z "${DATE_COLLECTION_ID}" ]] ; then
         # create a collection in rs if needed
-        mysql -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "INSERT INTO collection  (name,public,theme,theme2,theme3,theme4,created,user,allow_changes,home_page_publish,home_page_text) VALUES('$(printf "%q" "${CATALOG_NAME}")',1,'Programming','$(printf "%q" "${CATALOGYEAR}")','$(printf "%q" "${CATALOGMONTH}")','$(printf "%q" "${CATALOGDATE}")',now(),3,1,1,'Broadcast ${CATALOGDATE}')" ;
+        mysql -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "INSERT INTO collection  (name,public,theme,theme2,theme3,theme4,created,user,allow_changes) VALUES('$(printf "%q" "${CATALOG_NAME}")',1,'Programming','$(printf "%q" "${CATALOGYEAR}")','$(printf "%q" "${CATALOGMONTH}")','$(printf "%q" "${CATALOGDATE}")',now(),3,1)" ;
         DATE_COLLECTION_ID=$(_search_public_collections "${CATALOG_NAME}")
     fi
     # query protrack for records and add them all to a collection according to broadcast date
@@ -209,7 +209,7 @@ _catalog_airings(){
     DATE_PROMO_COLLECTION_ID=$(_search_public_collections "${CATALOG_PROMO_NAME}")
     if [[ -z "${DATE_PROMO_COLLECTION_ID}" ]] ; then
         # create a collection in rs if needed
-        mysql -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "INSERT INTO collection  (name,public,theme,theme2,theme3,theme4,created,user,allow_changes,home_page_publish,home_page_text) VALUES('$(printf "%q" "${CATALOG_PROMO_NAME}")',1,'Programming','$(printf "%q" "${CATALOGYEAR}")','$(printf "%q" "${CATALOGMONTH}")','$(printf "%q" "${CATALOGDATE}")',now(),3,1,1,'Broadcast ${CATALOGDATE}')" ;
+        mysql -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "INSERT INTO collection  (name,public,theme,theme2,theme3,theme4,created,user,allow_changes) VALUES('$(printf "%q" "${CATALOG_PROMO_NAME}")',1,'Programming','$(printf "%q" "${CATALOGYEAR}")','$(printf "%q" "${CATALOGMONTH}")','$(printf "%q" "${CATALOGDATE}")',now(),3,1)" ;
         DATE_PROMO_COLLECTION_ID=$(_search_public_collections "${CATALOG_PROMO_NAME}")
     fi
     psql -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -P pager=off -d protrack -c "SELECT CASE WHEN li_material_id is not null THEN trim(li_material_id) ELSE trim(fi_video_src) END FROM prog_log LEFT JOIN linkinfo ON li_vsn_id = prog_log.log_vsn_id LEFT JOIN filler ON fi_serial = prog_log.log_fi_id WHERE log_start_inst BETWEEN '${CATALOGDATE}' AND '$(date -j -f "%Y-%m-%d" -v+1d "${CATALOGDATE}" "+%Y-%m-%d")' AND log_type ='PR'" | sort -u | while read id ; do
