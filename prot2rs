@@ -84,14 +84,6 @@ _search_public_collections(){
     curl -# "${api_url}/?$query&sign=${sign}" | jq -r '.[] | select (.name=="'"${1}"'") | .ref'
 }
 
-_create_collection(){
-    uploadtext=$(echo "$1" | php -R 'echo html_entity_decode($argn);' | sed "s|\"|'|g")
-    query="user=${user}&function=create_collection&param1=${uploadtext}"
-    sign=$(printf '%s' "${private_key}${query}" | sha256deep)
-    curl -# "${api_url}/?$query&sign=${sign}"
-    echo "curl -# ${api_url}/?$query&sign=${sign}"
-}
-
 _add_resource_to_collection(){
     query="user=${user}&function=add_resource_to_collection&param1=${1}&param2=${2}";
     sign=$(printf '%s' "${private_key}${query}" | sha256deep)
@@ -123,7 +115,11 @@ _query_protrack_push_to_resourcespace(){
             return
         fi
         # get series title from PBCore XML and create collection
-        SERIESTITLE=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -t -v "//p:pbcoreDescriptionDocument[1]/p:pbcoreTitle[@titleType='Series'][1]" "${TEMPXML}" | php -R 'echo html_entity_decode($argn);')
+        unset SERIESTITLE
+        SERIESTITLE="$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -t -v "//p:pbcoreDescriptionDocument[1]/p:pbcoreTitle[@titleType='Series'][1]" "${TEMPXML}" | php -R 'echo html_entity_decode($argn);')"
+        if [[ -z "${SERIESTITLE}" ]] ; then
+            SERIESTITLE="Program"
+        fi
         unset COLLECTION_ID
         if [ -n "${SERIESTITLE}" ] ; then
             COLLECTION_ID=$(_search_public_collections "${SERIESTITLE}" | head -n 1)
