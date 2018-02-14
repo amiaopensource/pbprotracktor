@@ -183,19 +183,40 @@ _query_protrack_push_to_resourcespace(){
 
 _catalog_airings(){
     CATALOGDATE="${1}"
+    CATALOGMONTH="$(echo "${CATALOGDATE}" | cut -d- -f1-2)"
+    CATALOGYEAR="$(echo "${CATALOGDATE}" | cut -d- -f1)"
+    CATALOG_NAME="${CATALOGDATE} Shows"
     # check is a collection already exists for a broadcast date
-    DATE_COLLECTION_ID=$(_search_public_collections "${CATALOGDATE}")
+    DATE_COLLECTION_ID=$(_search_public_collections "${CATALOG_NAME}")
     if [[ -z "${DATE_COLLECTION_ID}" ]] ; then
         # create a collection in rs if needed
-        mysql -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "INSERT INTO collection  (name,public,theme,created,user,allow_changes,home_page_publish,home_page_text) VALUES('$(printf "%q" "${CATALOGDATE}")',1,'Broadcast Date',now(),3,1,1,'Broadcast ${CATALOGDATE}')" ;
-        DATE_COLLECTION_ID=$(_search_public_collections "${CATALOGDATE}")
+        mysql -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "INSERT INTO collection  (name,public,theme,theme2,theme3,theme4,created,user,allow_changes,home_page_publish,home_page_text) VALUES('$(printf "%q" "${CATALOG_NAME}")',1,'Programming','$(printf "%q" "${CATALOGYEAR}")','$(printf "%q" "${CATALOGMONTH}")','$(printf "%q" "${CATALOGDATE}")',now(),3,1,1,'Broadcast ${CATALOGDATE}')" ;
+        DATE_COLLECTION_ID=$(_search_public_collections "${CATALOG_NAME}")
     fi
     # query protrack for records and add them all to a collection according to broadcast date
-    psql -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -P pager=off -d protrack -c "SELECT CASE WHEN li_material_id is not null THEN trim(li_material_id) ELSE trim(fi_video_src) END FROM prog_log LEFT JOIN linkinfo ON li_vsn_id = prog_log.log_vsn_id LEFT JOIN filler ON fi_serial = prog_log.log_fi_id WHERE log_start_inst BETWEEN '${CATALOGDATE}' AND '$(date -j -f "%Y-%m-%d" -v+1d "${CATALOGDATE}" "+%Y-%m-%d")' AND log_type !='SI' AND log_type != 'AZ'" | sort -u | while read id ; do
+    ## programs
+    psql -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -P pager=off -d protrack -c "SELECT CASE WHEN li_material_id is not null THEN trim(li_material_id) ELSE trim(fi_video_src) END FROM prog_log LEFT JOIN linkinfo ON li_vsn_id = prog_log.log_vsn_id LEFT JOIN filler ON fi_serial = prog_log.log_fi_id WHERE log_start_inst BETWEEN '${CATALOGDATE}' AND '$(date -j -f "%Y-%m-%d" -v+1d "${CATALOGDATE}" "+%Y-%m-%d")' AND log_type ='PG'" | sort -u | while read id ; do
         MEDIAREF=$(_search "${id}")
         if [[ ! -z "${MEDIAREF}" ]] ; then
             echo "Adding ${id} with ref id of ${MEDIAREF} to ${CATALOGDATE} with ref id of ${DATE_COLLECTION_ID}"
             _add_resource_to_collection "${MEDIAREF}" "${DATE_COLLECTION_ID}"
+        else
+            echo NOT uploading "$id"
+        fi
+    done
+    ## promos
+    CATALOG_PROMO_NAME="${CATALOGDATE} Promos"
+    DATE_PROMO_COLLECTION_ID=$(_search_public_collections "${CATALOG_PROMO_NAME}")
+    if [[ -z "${DATE_PROMO_COLLECTION_ID}" ]] ; then
+        # create a collection in rs if needed
+        mysql -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "INSERT INTO collection  (name,public,theme,theme2,theme3,theme4,created,user,allow_changes,home_page_publish,home_page_text) VALUES('$(printf "%q" "${CATALOG_PROMO_NAME}")',1,'Programming','$(printf "%q" "${CATALOGYEAR}")','$(printf "%q" "${CATALOGMONTH}")','$(printf "%q" "${CATALOGDATE}")',now(),3,1,1,'Broadcast ${CATALOGDATE}')" ;
+        DATE_PROMO_COLLECTION_ID=$(_search_public_collections "${CATALOG_PROMO_NAME}")
+    fi
+    psql -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -P pager=off -d protrack -c "SELECT CASE WHEN li_material_id is not null THEN trim(li_material_id) ELSE trim(fi_video_src) END FROM prog_log LEFT JOIN linkinfo ON li_vsn_id = prog_log.log_vsn_id LEFT JOIN filler ON fi_serial = prog_log.log_fi_id WHERE log_start_inst BETWEEN '${CATALOGDATE}' AND '$(date -j -f "%Y-%m-%d" -v+1d "${CATALOGDATE}" "+%Y-%m-%d")' AND log_type ='PR'" | sort -u | while read id ; do
+        MEDIAREF=$(_search "${id}")
+        if [[ ! -z "${MEDIAREF}" ]] ; then
+            echo "Adding ${id} with ref id of ${MEDIAREF} to ${CATALOGDATE} with ref id of ${DATE_PROMO_COLLECTION_ID}"
+            _add_resource_to_collection "${MEDIAREF}" "${DATE_PROMO_COLLECTION_ID}"
         else
             echo NOT uploading "$MEDIAREF"
         fi
@@ -221,11 +242,11 @@ fi
 . "${CONF_FILE}" || { echo "Missing ${CONF_FILE}. Exiting." ; exit 1 ; }
 
 OPTIND=1
-while getopts ":f:F:th" OPT ; do
+while getopts ":f:F:t:h" OPT ; do
     case "${OPT}" in
         f) FROM_DATE_PT="${OPTARG}" ;;
         F) FROM_DATE_RS="${OPTARG}" ;;
-        t) MAKETODAY="Y" ;;
+        t) MAKEDATE="${OPTARG}" ;;
         h) _usage ;;
         :) echo "Option -${OPTARG} requires an argument" ; _writeerrorlog "makeyoutube" "The option selected required an argument and none was provided. The script had to exit." ; exit 1 ;;
         *) echo "bad option -${OPTARG}" ; _usage ;;
@@ -241,9 +262,9 @@ if [[ "${FROM_DATE_RS:0:1}" = "-" ]] ; then
     FROM_DATE_RS=$(date -j -v"${FROM_DATE_RS}"d "+%Y-%m-%d %H:%M:%S")
 fi
 
-if [[ "${MAKETODAY}" = "Y" ]]; then
-    _catalog_airings "$(date "+%Y-%m-%d")"
-    _catalog_airings "$(date -j -v+1d "+%Y-%m-%d")"
+if [[ ! -z "${MAKEDATE}" ]]; then
+    _catalog_airings "$MAKEDATE"
+    #_catalog_airings "$(date -j -v+1d "+%Y-%m-%d")"
 fi
 
 if [[ -n "${FROM_DATE_PT}" ]] ; then
