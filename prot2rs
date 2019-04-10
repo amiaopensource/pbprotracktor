@@ -221,7 +221,7 @@ _catalog_airings(){
 }
 
 if [ ! -f "${CONF_FILE}" ] ; then
-    echo "A configuration file is needed."
+    echo "A configuration file is needed, please edit ${CONF_FILE}."
     echo "Please edit ${CONF_FILE}"
     echo "PROTRACK_DB_URL=" > "${CONF_FILE}"
     echo "PROTRACK_DB_USER=" >> "${CONF_FILE}"
