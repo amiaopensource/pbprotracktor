@@ -108,6 +108,14 @@ _query_protrack_push_to_resourcespace(){
         TEMPXML=$(_maketemp)
         # get PBCore XML for that mediaid
         "${SCRIPTDIR}/pbprotracktor" "${MEDIAID}" | _remove_empty_xml_nodes 2> /dev/null > "${TEMPXML}"
+        if [[ -f "${SCRIPTDIR}/fmpbcore" && -f "${TEMPXML}" && ! -s "${TEMPXML}" ]] ; then
+            echo "No data retrived from protrack. Now trying to grab pbcore for ${MEDIAID} using fmpbcore."
+            "${SCRIPTDIR}/fmpbcore" "${MEDIAID}" | _remove_empty_xml_nodes 2> /dev/null > "${TEMPXML}"
+        fi
+        if [[ ! -s "${TEMPXML}" ]] ; then
+            echo "Error, no pbcore data found for ${MEDIAID}."
+            return
+        fi
         xml val "${TEMPXML}" >/dev/null
         if [ "${?}" != "0" ] ; then
             echo "pbprotracktor did not return a result for ${MEDIAID}, skipping."
@@ -123,7 +131,7 @@ _query_protrack_push_to_resourcespace(){
         UPLOAD_IDENTIFIERS=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreIdentifier -v . -o " (" -v @source -o ")" -n -b "${TEMPXML}")
         _updatefield "${REF}" "${PBCORE_IDENTIFIER_FIELD}" "${UPLOAD_IDENTIFIERS}"
         # upload title
-        UPLOAD_TITLES=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreDescriptionDocument -v "p:pbcoreTitle[@titleType='Episode']|p:pbcoreTitle[@titleType='Program']|p:pbcoreTitle[@titleType='Interstitial'][1]" -n -b "${TEMPXML}")
+        UPLOAD_TITLES=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m "//p:pbcoreDescriptionDocument/p:pbcoreTitle[@titleType!='Series']|p:pbcoreTitle[@titleType!='Subtitle']" -v "." -o " (" -v "@titleType" -o ")" -n -b "${TEMPXML}" | sed "s| ()||g")
         _updatefield "${REF}" "${PBCORE_TITLE_FIELD}" "${UPLOAD_TITLES}"
         # upload title series
         UPLOAD_TITLE_SERIES=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreDescriptionDocument -v "p:pbcoreTitle[@titleType='Series'][1]" "${TEMPXML}")
@@ -132,22 +140,22 @@ _query_protrack_push_to_resourcespace(){
         UPLOAD_SUBTITLE=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreDescriptionDocument -v "p:pbcoreTitle[@titleType='Subtitle'][1]" "${TEMPXML}")
         _updatefield "${REF}" "${PBCORE_SUBTITLE_FIELD}" "${UPLOAD_SUBTITLE}"
         # upload description info
-        UPLOAD_DESCRIPTIONS=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreDescriptionDocument/p:pbcoreDescription -v . -o " (" -v @descriptionType -o ")" -n -n -b "${TEMPXML}")
+        UPLOAD_DESCRIPTIONS=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreDescriptionDocument/p:pbcoreDescription -v . -o " (" -v @descriptionType -o ")" -n -n -b "${TEMPXML}" | sed "s| ()||g")
         _updatefield "${REF}" "${PBCORE_DESCRIPTION_FIELD}" "${UPLOAD_DESCRIPTIONS}"
         # upload coverage info
-        UPLOAD_COVERAGE=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreDescriptionDocument/p:pbcoreCoverage -v . -o " (" -v @coverageType -o ")" -n -b "${TEMPXML}")
+        UPLOAD_COVERAGE=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreDescriptionDocument/p:pbcoreCoverage -v . -o " (" -v @coverageType -o ")" -n -b "${TEMPXML}" | sed "s| ()||g")
         _updatefield "${REF}" "${PBCORE_COVERAGE_FIELD}" "${UPLOAD_COVERAGE}"
         # upload creator info
-        UPLOAD_CREATORS=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreDescriptionDocument/p:pbcoreCreator -v p:creator -o " (" -v @creatorRole -o ")" -n -b "${TEMPXML}")
+        UPLOAD_CREATORS=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreDescriptionDocument/p:pbcoreCreator -v p:creator -o " (" -v @creatorRole -o ")" -n -b "${TEMPXML}" | sed "s| \[\]||g;s| ()||g")
         _updatefield "${REF}" "${PBCORE_CREATOR_FIELD}" "${UPLOAD_CREATORS}"
         # upload contributor info
-        UPLOAD_CONTRIBUTORS=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreDescriptionDocument/p:pbcoreContributor -v p:contributor -o " [" -v p:contributor/@affiliation -o "] (" -v @contributorRole -o ")" -n -b "${TEMPXML}")
+        UPLOAD_CONTRIBUTORS=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreDescriptionDocument/p:pbcoreContributor -v p:contributor -o " [" -v p:contributor/@affiliation -o "] (" -v @contributorRole -o ")" -n -b "${TEMPXML}" | sed "s|\[\]||g;s|()||g")
         _updatefield "${REF}" "${PBCORE_CONTRIBUTOR_FIELD}" "${UPLOAD_CONTRIBUTORS}"
         # upload publisher info
-        UPLOAD_PUBLISHERS=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreDescriptionDocument/p:pbcorePublisher -v p:publisher -o " (" -v @publisherRole -o ")" "${TEMPXML}")
+        UPLOAD_PUBLISHERS=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreDescriptionDocument/p:pbcorePublisher -v p:publisher -o " (" -v @publisherRole -o ")" "${TEMPXML}" | sed "s| \[\]||g;s| ()||g")
         _updatefield "${REF}" "${PBCORE_PUBLISHER_FIELD}" "${UPLOAD_PUBLISHERS}"
         # upload interstitial info
-        UPLOAD_INSTANTIATION=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreInstantiation -m p:instantiationIdentifier -v . -o " (" -v @source -o ")" -n -b -o "timestart: " -v p:instantiationTimeStart -n -o "duration: " -v p:instantiationDuration -n -n "${TEMPXML}")
+        UPLOAD_INSTANTIATION=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreInstantiation -m p:instantiationIdentifier -v . -o " (" -v @source -o ")" -n -b -o "timestart: " -v p:instantiationTimeStart -n -o "duration: " -v p:instantiationDuration -n -n "${TEMPXML}" | sed "s| ()||g")
         _updatefield "${REF}" "${PBCORE_INSTANTIATION_FIELD}" "${UPLOAD_INSTANTIATION}"
     
         # provide last updated info
