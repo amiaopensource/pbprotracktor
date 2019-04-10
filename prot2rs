@@ -8,20 +8,19 @@ CONF_FILE="${SCRIPTDIR}/pbpro.conf"
 # it is recommended to set up a display template for these fields in resourcespace like this:
 # <div><h3>[title]</h3><p>[value]</p></div><div class="clearerleft"> </div>
 
-PBCORE_ASSETTYPE_FIELD=77
-PBCORE_ASSETDATE_FIELD=82
-PBCORE_IDENTIFIER_FIELD=78
-PBCORE_TITLE_FIELD=111
-PBCORE_TITLE_SERIES_FIELD=117
-PBCORE_TITLE_PRIMARY_FIELD=73
-PBCORE_TITLE_SECONDARY_FIELD=76
-PBCORE_DESCRIPTION_FIELD=84
+PBCORE_ASSETTYPE_FIELD=85
+PBCORE_TITLE_SERIES_FIELD=86
+PBCORE_ASSETDATE_FIELD=12
+PBCORE_IDENTIFIER_FIELD=98
+PBCORE_TITLE_FIELD=92
+PBCORE_DESCRIPTION_FIELD=88
+PBCORE_INSTANTIATION_FIELD=97
+LAST_UPDATED_FIELD=99
+
 PBCORE_COVERAGE_FIELD=93
 PBCORE_CREATOR_FIELD=86
 PBCORE_CONTRIBUTOR_FIELD=90
 PBCORE_PUBLISHER_FIELD=91
-PBCORE_INSTANTIATION_FIELD=116
-LAST_UPDATED_FIELD=109
 
 _usage(){
     cat <<EOF
@@ -126,6 +125,7 @@ _query_protrack_push_to_resourcespace(){
         fi
         if [[ -z "${COLLECTION_ID}" ]] ; then
             # create a collection in rs, using mysql in order to make the collection public and give it a theme
+            echo "series ${SERIESTITLE}"
             mysql -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "INSERT INTO collection (name,public,theme,created,user,allow_changes) VALUES('$(printf "%q" "${SERIESTITLE}")',1,'Series',now(),3,1)" ;
             COLLECTION_ID=$(_search_public_collections "${SERIESTITLE}" | head -n 1)
         fi
@@ -142,32 +142,32 @@ _query_protrack_push_to_resourcespace(){
         UPLOAD_IDENTIFIERS=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreIdentifier -v . -o " (" -v @source -o ")" -n -b "${TEMPXML}")
         _updatefield "${REF}" "${PBCORE_IDENTIFIER_FIELD}" "${UPLOAD_IDENTIFIERS}"
         # upload title info
-        UPLOAD_TITLES=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreDescriptionDocument/p:pbcoreTitle -v . -o " (" -v @titleType -o ")" -n -b "${TEMPXML}")
+        UPLOAD_TITLES=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreDescriptionDocument -v "p:pbcoreTitle[@titleType='Episode']|p:pbcoreTitle[@titleType='Program']|p:pbcoreTitle[@titleType='Interstitial']" -n -b "${TEMPXML}")
         _updatefield "${REF}" "${PBCORE_TITLE_FIELD}" "${UPLOAD_TITLES}"
         # upload title series
-        UPLOAD_TITLE_SERIES=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreDescriptionDocument -v "p:pbcoreTitle[@titleType='Series']" "${TEMPXML}")
+        UPLOAD_TITLE_SERIES=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreDescriptionDocument -v "p:pbcoreTitle[@titleType='Series'][1]" "${TEMPXML}")
         _updatefield "${REF}" "${PBCORE_TITLE_SERIES_FIELD}" "${UPLOAD_TITLE_SERIES}"
-        # upload title primary
-        UPLOAD_TITLE_PRIMARY=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreDescriptionDocument -v "p:pbcoreTitle[@titleType='Series']|p:pbcoreTitle[@titleType='Program']" "${TEMPXML}")
-        _updatefield "${REF}" "${PBCORE_TITLE_PRIMARY_FIELD}" "${UPLOAD_TITLE_PRIMARY}"
-        # upload title secondary
-        UPLOAD_TITLE_SECONDARY=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreDescriptionDocument -v "p:pbcoreTitle[@titleType='Episode']|p:pbcoreTitle[@titleType='Interstitial']" "${TEMPXML}")
-        _updatefield "${REF}" "${PBCORE_TITLE_SECONDARY_FIELD}" "${UPLOAD_TITLE_SECONDARY}"
         # upload description info
         UPLOAD_DESCRIPTIONS=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreDescriptionDocument/p:pbcoreDescription -v . -o " (" -v @descriptionType -o ")" -n -n -b "${TEMPXML}")
         _updatefield "${REF}" "${PBCORE_DESCRIPTION_FIELD}" "${UPLOAD_DESCRIPTIONS}"
+        # upload title primary
+        #UPLOAD_TITLE_PRIMARY=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreDescriptionDocument -v "p:pbcoreTitle[@titleType='Series']|p:pbcoreTitle[@titleType='Program']" "${TEMPXML}")
+        #_updatefield "${REF}" "${PBCORE_TITLE_PRIMARY_FIELD}" "${UPLOAD_TITLE_PRIMARY}"
+        # upload title secondary
+        #UPLOAD_TITLE_SECONDARY=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreDescriptionDocument -v "p:pbcoreTitle[@titleType='Episode']|p:pbcoreTitle[@titleType='Interstitial']" "${TEMPXML}")
+        #_updatefield "${REF}" "${PBCORE_TITLE_SECONDARY_FIELD}" "${UPLOAD_TITLE_SECONDARY}"
         # upload coverage info
-        UPLOAD_COVERAGE=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreDescriptionDocument/p:pbcoreCoverage -v . -o " (" -v @coverageType -o ")" -n -b "${TEMPXML}")
-        _updatefield "${REF}" "${PBCORE_COVERAGE_FIELD}" "${UPLOAD_COVERAGE}"
+        #UPLOAD_COVERAGE=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreDescriptionDocument/p:pbcoreCoverage -v . -o " (" -v @coverageType -o ")" -n -b "${TEMPXML}")
+        #_updatefield "${REF}" "${PBCORE_COVERAGE_FIELD}" "${UPLOAD_COVERAGE}"
         # upload creator info
-        UPLOAD_CREATORS=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreDescriptionDocument/p:pbcoreCreator -v p:creator -o " (" -v @creatorRole -o ")" -n -b "${TEMPXML}")
-        _updatefield "${REF}" "${PBCORE_CREATOR_FIELD}" "${UPLOAD_CREATORS}"
+        #UPLOAD_CREATORS=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreDescriptionDocument/p:pbcoreCreator -v p:creator -o " (" -v @creatorRole -o ")" -n -b "${TEMPXML}")
+        #_updatefield "${REF}" "${PBCORE_CREATOR_FIELD}" "${UPLOAD_CREATORS}"
         # upload contributor info
-        UPLOAD_CONTRIBUTORS=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreDescriptionDocument/p:pbcoreContributor -v p:contributor -o " [" -v p:contributor/@affiliation -o "] (" -v @contributorRole -o ")" -n -b "${TEMPXML}")
-        _updatefield "${REF}" "${PBCORE_CONTRIBUTOR_FIELD}" "${UPLOAD_CONTRIBUTORS}"
+        #UPLOAD_CONTRIBUTORS=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreDescriptionDocument/p:pbcoreContributor -v p:contributor -o " [" -v p:contributor/@affiliation -o "] (" -v @contributorRole -o ")" -n -b "${TEMPXML}")
+        #_updatefield "${REF}" "${PBCORE_CONTRIBUTOR_FIELD}" "${UPLOAD_CONTRIBUTORS}"
         # upload publisher info
-        UPLOAD_PUBLISHERS=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreDescriptionDocument/p:pbcorePublisher -v p:publisher -o " (" -v @publisherRole -o ")" "${TEMPXML}")
-        _updatefield "${REF}" "${PBCORE_PUBLISHER_FIELD}" "${UPLOAD_PUBLISHERS}"
+        #UPLOAD_PUBLISHERS=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreDescriptionDocument/p:pbcorePublisher -v p:publisher -o " (" -v @publisherRole -o ")" "${TEMPXML}")
+        #_updatefield "${REF}" "${PBCORE_PUBLISHER_FIELD}" "${UPLOAD_PUBLISHERS}"
         # upload interstitial info
         UPLOAD_INSTANTIATION=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreInstantiation -m p:instantiationIdentifier -v . -o " (" -v @source -o ")" -n -b -o "timestart: " -v p:instantiationTimeStart -n -o "duration: " -v p:instantiationDuration -n -n "${TEMPXML}")
         _updatefield "${REF}" "${PBCORE_INSTANTIATION_FIELD}" "${UPLOAD_INSTANTIATION}"
