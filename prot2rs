@@ -113,25 +113,6 @@ _query_protrack_push_to_resourcespace(){
             echo "pbprotracktor did not return a result for ${MEDIAID}, skipping."
             return
         fi
-        # get series title from PBCore XML and create collection
-        unset SERIESTITLE
-        SERIESTITLE="$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -t -v "//p:pbcoreDescriptionDocument[1]/p:pbcoreTitle[@titleType='Series'][1]" "${TEMPXML}" | php -R 'echo html_entity_decode($argn);')"
-        if [[ -z "${SERIESTITLE}" ]] ; then
-            SERIESTITLE="Program"
-        fi
-        unset COLLECTION_ID
-        if [ -n "${SERIESTITLE}" ] ; then
-            COLLECTION_ID=$(_search_public_collections "${SERIESTITLE}" | head -n 1)
-        fi
-        if [[ -z "${COLLECTION_ID}" ]] ; then
-            # create a collection in rs, using mysql in order to make the collection public and give it a theme
-            echo "series ${SERIESTITLE}"
-            mysql -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "INSERT INTO collection (name,public,theme,created,user,allow_changes) VALUES('$(printf "%q" "${SERIESTITLE}")',1,'Series',now(),3,1)" ;
-            COLLECTION_ID=$(_search_public_collections "${SERIESTITLE}" | head -n 1)
-        fi
-        if [[ -n "${COLLECTION_ID}" ]] ; then
-            _add_resource_to_collection "${REF}" "${COLLECTION_ID}"
-        fi
         # upload asset type
         UPLOAD_ASSETTYPE=$(xml sel -N p="http://www.pbcore.org/PBCore/PBCoreNamespace.html" -T -t -m //p:pbcoreAssetType -v . -n -b "${TEMPXML}")
         _updatefield "${REF}" "${PBCORE_ASSETTYPE_FIELD}" "${UPLOAD_ASSETTYPE}"
