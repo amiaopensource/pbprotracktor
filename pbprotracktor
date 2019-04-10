@@ -373,5 +373,10 @@ if [[ "${CSV}" = "Y" ]] ; then
     -o "\"" -v "p:pbcoreDescription[@descriptionType='PSIP']" -o "\"," \
     -n
 else
-    _getpbcore "$@" | xml fo
+    XML_RESULT="$(_getpbcore "$@")"
+    if [[ -n "${XML_RESULT}" ]] ; then
+        echo "${XML_RESULT}" | xml fo
+    else
+        >&2 echo "No result for ${@}"
+    fi
 fi
