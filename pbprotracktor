@@ -272,7 +272,34 @@ psql -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack -c "\
                             ),
                             initcap(trim(vsn_descript)) )
                     END,
-                    ${INSTANTIATION_CALL}
+                    ${INSTANTIATION_CALL},
+                    CASE WHEN vsn_caption is not null THEN
+                        XMLELEMENT(NAME \"pbcoreAnnotation\",
+                            XMLATTRIBUTES(
+                                'protrack:vsn_caption' as \"annotationType\"
+                            ),
+                            trim(vsn_caption))
+                    END,
+                    (SELECT
+                        XMLELEMENT(NAME \"pbcoreAnnotation\",
+                            XMLATTRIBUTES(
+                                'protrack:episode_caption_exemption' as \"annotationType\"
+                            ),
+                            trim(ccxmptcd_episode.ccx_text))
+                    FROM ccxmptcd AS ccxmptcd_episode
+                    LEFT JOIN pgmcodes AS pgmcodes_episode ON ccxmptcd_episode.ccx_code = pgmcodes_episode.pgc_code
+                    WHERE pgmcodes_episode.pgc_vsn_id = vsn_serial
+                    ),
+                    (SELECT
+                        XMLELEMENT(NAME \"pbcoreAnnotation\",
+                            XMLATTRIBUTES(
+                                'protrack:series_caption_exemption' as \"annotationType\"
+                            ),
+                            trim(ccxmptcd_series.ccx_text))
+                    FROM ccxmptcd AS ccxmptcd_series
+                    LEFT JOIN pgmcodes AS pgmcodes_series ON ccxmptcd_series.ccx_code = pgmcodes_series.pgc_code
+                    WHERE pgmcodes_series.pgc_ser_id = ser_serial
+                    )
                 )
             ) as pbcore_episodes_xml
         FROM quad_tab
