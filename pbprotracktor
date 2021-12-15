@@ -299,6 +299,7 @@ psql -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack -c "\
                     FROM ccxmptcd AS ccxmptcd_series
                     LEFT JOIN pgmcodes AS pgmcodes_series ON ccxmptcd_series.ccx_code = pgmcodes_series.pgc_code
                     WHERE pgmcodes_series.pgc_ser_id = ser_serial
+                    LIMIT 1
                     )
                 )
             ) as pbcore_episodes_xml
