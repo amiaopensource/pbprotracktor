@@ -49,25 +49,88 @@ Usage: ${SCRIPTNAME} [-a] [-c] {file_or_package} | -h
   -a  return all instantiations per asset, rather than only the called one
   -c  transform XML output into CSV
   -h  display this help
+  -s  Export a schedule of programming. By default, the export shall be in
+      ical format from a relative date range from one week ago to two
+      months from now.
 EOF
 }
 
 OPTIND=1
-while getopts ":ach" OPT ; do
+while getopts ":achs" OPT ; do
     case "${OPT}" in
         a) ALL_INST="Y" ;;
         c) CSV="Y" ;;
         h) _usage ; exit 0 ;;
+        s) ICAL_EXPORT="Y" ;;
         *) echo "bad option -${OPTARG}" ; _usage ; exit 1 ;;
     esac
 done
 shift $(( ${OPTIND} - 1 ))
 
-if [[ "${#}" = 0 ]] ; then
+if [[ "${#}" = 0 && "${ICAL_EXPORT}" != "Y" ]] ; then
   _usage
   exit 1
 fi
 
+if [[ "${ICAL_EXPORT}" = "Y" ]] ; then
+    TEMP_TSV="$(_maketemp)"
+    psql -P pager=off -F $'\t' -Ath 10.25.103.11 -U archivesx -d protrack -c "\
+        SELECT
+            ai_serial,
+            TO_CHAR(ai_air_strt_inst,'YYYYMMDD\"T\"HH24MISS'),
+            TO_CHAR(ai_air_einst,'YYYYMMDD\"T\"HH24MISS'),
+            TO_CHAR(air.up_date,'YYYYMMDD\"T\"HH24MISS'),
+            TRIM(quad_tab.ser_pgm_type),
+            CASE WHEN linkinfo.li_material_id IS NOT NULL THEN TRIM(linkinfo.li_material_id) ELSE 'UNASSIGNED' END,
+            CASE WHEN ser_titles.ttl_text IS NOT NULL THEN TRIM(ser_titles.ttl_text) ELSE TRIM(quad_tab.ser_title) END,
+            CASE WHEN epi_titles.ttl_text IS NOT NULL THEN TRIM(epi_titles.ttl_text) ELSE TRIM(quad_tab.pg_title) END
+        FROM air
+            LEFT JOIN airlink  ON air.ai_serial = airlink.alk_air_id AND
+                NOT airlink.alk_air_id IS NULL
+            LEFT JOIN quad_tab  ON air.ai_vsn_id = quad_tab.vsn_serial AND
+                NOT quad_tab.vsn_serial IS NULL
+            LEFT JOIN linkinfo ON airlink.alk_linkinfo_id = linkinfo.li_serial AND
+                NOT linkinfo.li_serial IS NULL
+            LEFT JOIN titles AS ser_titles ON air.ai_ser_id = ser_titles.ttl_ser_id AND
+                ser_titles.ttl_prog_id = '-1' AND
+                ser_titles.ttl_type = 'AC' AND
+                NOT ser_titles.ttl_ser_id IS NULL
+            LEFT JOIN titles AS epi_titles ON air.ai_ser_id = epi_titles.ttl_ser_id AND
+                epi_titles.ttl_prog_id = air.ai_prog_id AND
+                epi_titles.ttl_type = 'AC' AND
+                NOT epi_titles.ttl_ser_id IS NULL
+        WHERE ai_air_strt_inst > now () - interval '1 week' AND
+              ai_air_strt_inst < now () + interval '2 months'
+        ORDER BY ai_air_strt_inst" > "${TEMP_TSV}"
+cat << ICAL_HEADER
+BEGIN:VCALENDAR
+PRODID:-//Google Inc//Google Calendar 70.9054//EN
+CALSCALE:GREGORIAN
+VERSION:2.0
+X-WR-CALNAME:TEST TEST
+X-APPLE-CALENDAR-COLOR:#5c0562
+X-WR-TIMEZONE:America/New_York
+ICAL_HEADER
+
+    while IFS=$'\t' read id start end update category media_id title_1 title_2 ; do
+cat << ICAL_ITEM
+BEGIN:VEVENT
+CREATED;TZID=America/New_York:${update}
+UID:${update}_${id}@protrack_calendar
+SUMMARY:${title_1} (${media_id})
+DESCRIPTION:${title_2}
+LAST-MODIFIED;TZID=America/New_York:${update}
+DTSTAMP;TZID=America/New_York:${update}
+DTSTART;TZID=America/New_York:${start}
+DTEND;TZID=America/New_York:${end}
+END:VEVENT
+ICAL_ITEM
+        done < "${TEMP_TSV}"
+cat << ICAL_FOOTER
+END:VCALENDAR
+ICAL_FOOTER
+    exit
+fi
 if [[ "${ALL_INST}" = "Y" ]] ; then
     INSTANTIATION_CALL="(SELECT XMLAGG (
                         XMLELEMENT(NAME \"pbcoreInstantiation\",
