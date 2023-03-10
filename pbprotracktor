@@ -11,6 +11,14 @@ fi
 
 CONF_FILE="${SCRIPTDIR}/pbpro.conf"
 
+_maketemp(){
+    mktemp -q -t "$(basename "${0}").XXXXXX"
+    if [ "${?}" -ne 0 ]; then
+        echo "${0}: Can't create temp file, exiting..."
+        exit 1
+    fi
+}
+
 if [ ! -f "${CONF_FILE}" ] ; then
     echo "A configuration file is needed."
     echo "Please edit ${CONF_FILE}"
