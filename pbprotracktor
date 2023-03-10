@@ -3,11 +3,7 @@
 SCRIPTDIR=$(dirname $(which "${0}"))
 SCRIPTNAME=$(basename "${0}")
 
-if [[ "${SCRIPTDIR}" = "/usr/local/bin" ]] ; then
-    VERSION=$(TMP=$(brew info ${SCRIPTNAME} | grep -Eo "/${SCRIPTNAME}/.* \(") ; echo ${TMP:${#SCRIPTNAME}+2:(${#TMP}-${#SCRIPTNAME}-4)})
-else
-    VERSION=""
-fi
+VERSION="2020-04-30"
 
 CONF_FILE="${SCRIPTDIR}/pbpro.conf"
 
