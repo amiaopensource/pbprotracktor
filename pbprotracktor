@@ -273,7 +273,7 @@ else
 fi
 
 _getpbcore(){
-"${PSQL_BIN}" -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack -c "\
+"${PSQL_BIN}" -Ath "${PROTRACK_DB_URL}" -U "${PROTRACK_DB_USER}" -d protrack -c "\
     SELECT
         CASE WHEN pbcore_episodes_xml is not null OR pbcore_filler_xml is not null THEN
             XMLELEMENT(
