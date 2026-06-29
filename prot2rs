@@ -261,7 +261,7 @@ if [ ! -f "${CONF_FILE}" ] ; then
     echo "RESOURCESPACE_DB_NAME=" >> "${CONF_FILE}"
     echo "RESOURCESPACE_DB_USER=" >> "${CONF_FILE}"
     echo "RESOURCESPACE_DB_PW=" >> "${CONF_FILE}"
-    echo "# for resourcespace api"
+    echo "# for resourcespace api" >> "${CONF_FILE}"
     echo "private_key=" >> "${CONF_FILE}"
     echo "user=" >> "${CONF_FILE}"
     echo "api_url=" >> "${CONF_FILE}"
