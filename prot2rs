@@ -41,6 +41,47 @@ EOF
     exit
 }
 
+_find_psql() {
+    if [[ -n "${PSQL_BIN}" && -x "${PSQL_BIN}" ]]; then
+        return
+    fi
+
+    if command -v psql &>/dev/null; then
+        PSQL_BIN="$(command -v psql)"
+        return
+    fi
+
+    for BIN in $(compgen -c psql- 2>/dev/null | grep -E '^psql-[0-9]+$' | sort -t- -k2 -rn); do
+        if command -v "${BIN}" &>/dev/null; then
+            PSQL_BIN="$(command -v "${BIN}")"
+            return
+        fi
+    done
+
+    local CELLAR
+    for CELLAR in /opt/homebrew/Cellar /usr/local/Cellar; do
+        [[ -d "${CELLAR}" ]] || continue
+        local BIN_PATH
+        BIN_PATH="$(find "${CELLAR}/postgresql@"* -name psql -type f 2>/dev/null \
+            | sort -t@ -k2 -rn | head -1)"
+        if [[ -x "${BIN_PATH}" ]]; then
+            PSQL_BIN="${BIN_PATH}"
+            return
+        fi
+    done
+
+    local OPT
+    for OPT in $(ls -d /opt/homebrew/opt/postgresql@* 2>/dev/null | sort -t@ -k2 -rn); do
+        if [[ -x "${OPT}/bin/psql" ]]; then
+            PSQL_BIN="${OPT}/bin/psql"
+            return
+        fi
+    done
+
+    echo "ERROR: psql not found. Install via: brew install postgresql" >&2
+    exit 1
+}
+
 urlencode() {
     # urlencode <string>
     old_lc_collate=$LC_COLLATE
@@ -181,7 +222,7 @@ _catalog_airings(){
     fi
     # query protrack for records and add them all to a collection according to broadcast date
     ## programs
-    psql -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -P pager=off -d protrack -c "SELECT CASE WHEN li_material_id is not null THEN trim(li_material_id) ELSE trim(fi_video_src) END FROM prog_log LEFT JOIN linkinfo ON li_vsn_id = prog_log.log_vsn_id LEFT JOIN filler ON fi_serial = prog_log.log_fi_id WHERE log_start_inst BETWEEN '${CATALOGDATE}' AND '$(date -j -f "%Y-%m-%d" -v+1d "${CATALOGDATE}" "+%Y-%m-%d")' AND log_type ='PG'" | sort -u | while read id ; do
+    "${PSQL_BIN}" -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -P pager=off -d protrack -c "SELECT CASE WHEN li_material_id is not null THEN trim(li_material_id) ELSE trim(fi_video_src) END FROM prog_log LEFT JOIN linkinfo ON li_vsn_id = prog_log.log_vsn_id LEFT JOIN filler ON fi_serial = prog_log.log_fi_id WHERE log_start_inst BETWEEN '${CATALOGDATE}' AND '$(date -j -f "%Y-%m-%d" -v+1d "${CATALOGDATE}" "+%Y-%m-%d")' AND log_type ='PG'" | sort -u | while read id ; do
         MEDIAREF=$(_search "${id}")
         if [[ ! -z "${MEDIAREF}" ]] ; then
             echo "Adding ${id} with ref id of ${MEDIAREF} to ${CATALOGDATE} with ref id of ${DATE_COLLECTION_ID}"
@@ -198,7 +239,7 @@ _catalog_airings(){
         mysql -h "${RESOURCESPACE_DB_HOST}" -u "${RESOURCESPACE_DB_USER}" -p"${RESOURCESPACE_DB_PW}" -D "${RESOURCESPACE_DB_NAME}" -e "INSERT INTO collection  (name,public,theme,theme2,theme3,theme4,created,user,allow_changes) VALUES('$(printf "%q" "${CATALOG_PROMO_NAME}")',1,'Programming','$(printf "%q" "${CATALOGYEAR}")','$(printf "%q" "${CATALOGMONTH}")','$(printf "%q" "${CATALOGDATE}")',now(),3,1)" ;
         DATE_PROMO_COLLECTION_ID=$(_search_public_collections "${CATALOG_PROMO_NAME}")
     fi
-    psql -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -P pager=off -d protrack -c "SELECT CASE WHEN li_material_id is not null THEN trim(li_material_id) ELSE trim(fi_video_src) END FROM prog_log LEFT JOIN linkinfo ON li_vsn_id = prog_log.log_vsn_id LEFT JOIN filler ON fi_serial = prog_log.log_fi_id WHERE log_start_inst BETWEEN '${CATALOGDATE}' AND '$(date -j -f "%Y-%m-%d" -v+1d "${CATALOGDATE}" "+%Y-%m-%d")' AND log_type ='PR'" | sort -u | while read id ; do
+    "${PSQL_BIN}" -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -P pager=off -d protrack -c "SELECT CASE WHEN li_material_id is not null THEN trim(li_material_id) ELSE trim(fi_video_src) END FROM prog_log LEFT JOIN linkinfo ON li_vsn_id = prog_log.log_vsn_id LEFT JOIN filler ON fi_serial = prog_log.log_fi_id WHERE log_start_inst BETWEEN '${CATALOGDATE}' AND '$(date -j -f "%Y-%m-%d" -v+1d "${CATALOGDATE}" "+%Y-%m-%d")' AND log_type ='PR'" | sort -u | while read id ; do
         MEDIAREF=$(_search "${id}")
         if [[ ! -z "${MEDIAREF}" ]] ; then
             echo "Adding ${id} with ref id of ${MEDIAREF} to ${CATALOGDATE} with ref id of ${DATE_PROMO_COLLECTION_ID}"
@@ -208,6 +249,8 @@ _catalog_airings(){
         fi
     done
 }
+
+_find_psql
 
 if [ ! -f "${CONF_FILE}" ] ; then
     echo "A configuration file is needed, please edit ${CONF_FILE}."
@@ -255,11 +298,11 @@ fi
 
 if [[ -n "${FROM_DATE_PT}" ]] ; then
     # query protrack for filler and update data to rs
-    psql -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -P pager=off -d protrack -c "SELECT fi_video_src FROM filler AS f LEFT JOIN notes AS n ON n.no_parent = f.fi_serial WHERE f.up_date BETWEEN '${FROM_DATE_PT}' AND '3000-01-01' OR n.up_date BETWEEN '${FROM_DATE_PT}' AND '3000-01-01'" | while read MEDIAID ; do
+    "${PSQL_BIN}" -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -P pager=off -d protrack -c "SELECT fi_video_src FROM filler AS f LEFT JOIN notes AS n ON n.no_parent = f.fi_serial WHERE f.up_date BETWEEN '${FROM_DATE_PT}' AND '3000-01-01' OR n.up_date BETWEEN '${FROM_DATE_PT}' AND '3000-01-01'" | while read MEDIAID ; do
         _query_protrack_push_to_resourcespace "${MEDIAID}"
     done
     # query protrack for programs and episodes and update data to rs
-    psql -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -P pager=off -d protrack -c "SELECT li_material_id FROM linkinfo LEFT JOIN quad_tab ON linkinfo.li_vsn_id = quad_tab.vsn_serial WHERE linkinfo.up_date BETWEEN '${FROM_DATE_PT}' AND '3000-01-01'" | while read MEDIAID ; do
+    "${PSQL_BIN}" -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -P pager=off -d protrack -c "SELECT li_material_id FROM linkinfo LEFT JOIN quad_tab ON linkinfo.li_vsn_id = quad_tab.vsn_serial WHERE linkinfo.up_date BETWEEN '${FROM_DATE_PT}' AND '3000-01-01'" | while read MEDIAID ; do
         _query_protrack_push_to_resourcespace "${MEDIAID}"
     done
 elif [[ -n "${FROM_DATE_RS}" ]] ; then
