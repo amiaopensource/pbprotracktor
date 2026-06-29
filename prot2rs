@@ -245,7 +245,7 @@ _catalog_airings(){
             echo "Adding ${id} with ref id of ${MEDIAREF} to ${CATALOGDATE} with ref id of ${DATE_PROMO_COLLECTION_ID}"
             _add_resource_to_collection "${MEDIAREF}" "${DATE_PROMO_COLLECTION_ID}"
         else
-            echo NOT uploading "$MEDIAREF"
+            echo NOT uploading "$id"
         fi
     done
 }
