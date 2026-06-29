@@ -55,6 +55,49 @@ Usage: ${SCRIPTNAME} [-a] [-c] {file_or_package} | -h
 EOF
 }
 
+_find_psql() {
+    if [[ -n "${PSQL_BIN}" && -x "${PSQL_BIN}" ]]; then
+        return
+    fi
+
+    if command -v psql &>/dev/null; then
+        PSQL_BIN="$(command -v psql)"
+        return
+    fi
+
+    for BIN in $(compgen -c psql- 2>/dev/null | grep -E '^psql-[0-9]+$' | sort -t- -k2 -rn); do
+        if command -v "${BIN}" &>/dev/null; then
+            PSQL_BIN="$(command -v "${BIN}")"
+            return
+        fi
+    done
+
+    local CELLAR
+    for CELLAR in /opt/homebrew/Cellar /usr/local/Cellar; do
+        [[ -d "${CELLAR}" ]] || continue
+        local BIN_PATH
+        BIN_PATH="$(find "${CELLAR}/postgresql@"* -name psql -type f 2>/dev/null \
+            | sort -t@ -k2 -rn | head -1)"
+        if [[ -x "${BIN_PATH}" ]]; then
+            PSQL_BIN="${BIN_PATH}"
+            return
+        fi
+    done
+
+    local OPT
+    for OPT in $(ls -d /opt/homebrew/opt/postgresql@* 2>/dev/null | sort -t@ -k2 -rn); do
+        if [[ -x "${OPT}/bin/psql" ]]; then
+            PSQL_BIN="${OPT}/bin/psql"
+            return
+        fi
+    done
+
+    echo "ERROR: psql not found. Install via: brew install postgresql" >&2
+    exit 1
+}
+
+_find_psql
+
 OPTIND=1
 while getopts ":achs" OPT ; do
     case "${OPT}" in
@@ -74,7 +117,7 @@ fi
 
 if [[ "${ICAL_EXPORT}" = "Y" ]] ; then
     TEMP_TSV="$(_maketemp)"
-    psql -P pager=off -F $'\t' -Ath "${PROTRACK_DB_URL}" -U "${PROTRACK_DB_USER}" -d protrack -c "\
+    "${PSQL_BIN}" -P pager=off -F $'\t' -Ath "${PROTRACK_DB_URL}" -U "${PROTRACK_DB_USER}" -d protrack -c "\
         SELECT
             ai_serial,
             TO_CHAR(ai_air_strt_inst,'YYYYMMDD\"T\"HH24MISS'),
@@ -230,7 +273,7 @@ else
 fi
 
 _getpbcore(){
-psql -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack -c "\
+"${PSQL_BIN}" -Ath "$PROTRACK_DB_URL" -U "$PROTRACK_DB_USER" -d protrack -c "\
     SELECT
         CASE WHEN pbcore_episodes_xml is not null OR pbcore_filler_xml is not null THEN
             XMLELEMENT(
